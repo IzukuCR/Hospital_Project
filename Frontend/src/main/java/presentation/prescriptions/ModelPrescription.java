@@ -1,0 +1,70 @@
+package main.java.presentation.prescriptions;
+
+import prescription_dispatch.logic.Prescription;
+
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ModelPrescription {
+    private List<Prescription> prescriptions;
+    private Prescription current;
+    private PropertyChangeSupport support;
+
+    public static final String CURRENT = "current";
+    public static final String LIST = "list";
+
+    public ModelPrescription() {
+        prescriptions = new ArrayList<>();
+        current = new Prescription();
+        support = new PropertyChangeSupport(this);
+    }
+
+    public List<Prescription> getPrescriptions() {
+        return new ArrayList<>(prescriptions);
+    }
+
+    public void setPrescriptions(List<Prescription> prescriptions) {
+        List<Prescription> oldPrescriptions = this.prescriptions;
+        this.prescriptions = new ArrayList<>(prescriptions);
+        support.firePropertyChange(LIST, oldPrescriptions, this.prescriptions);
+    }
+
+    public Prescription getCurrent() {
+        return current;
+    }
+
+    public void setCurrent(Prescription current) {
+        Prescription oldCurrent = this.current;
+        this.current = current;
+
+        if (current != null) {
+            System.out.println("Model current set:");
+            System.out.println("Patient ID: " + current.getPatientId());
+            System.out.println("Withdrawal Date: " + current.getWithdrawalDate());
+            System.out.println("Items: " + (current.getItems() != null ? current.getItems().size() : 0));
+        }
+
+        support.firePropertyChange(CURRENT, oldCurrent, this.current);
+    }
+
+    public void addPropertyChangeListener(PropertyChangeListener listener) {
+        support.addPropertyChangeListener(listener);
+    }
+
+    public void removePropertyChangeListener(PropertyChangeListener listener) {
+        support.removePropertyChangeListener(listener);
+    }
+
+    public Prescription getPrescription(String id) {
+        if (prescriptions != null) {
+            for (Prescription prescription : prescriptions) {
+                if (prescription.getId().equals(id)) {
+                    return prescription;
+                }
+            }
+        }
+        return null;
+    }
+}
