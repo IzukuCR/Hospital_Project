@@ -1,6 +1,7 @@
-package main.java.presentation;
+package presentation;
 
-import prescription_dispatch.logic.Patient;
+import logic.Patient;
+
 
 @FunctionalInterface
 public interface PatientSelectionListener {

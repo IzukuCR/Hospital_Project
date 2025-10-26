@@ -1,14 +1,8 @@
-package main.java.presentation.dispensing;
+package presentation.dispensing;
 
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.logic.Pharmacist;
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.logic.Service;
+import logic.*;
+import java.util.*;
 
-import java.beans.PropertyChangeListener;
-import java.beans.PropertyChangeSupport;
-import java.util.ArrayList;
-import java.util.List;
 
 public class ModelDispensing
 extends AbstractModelDispensing {

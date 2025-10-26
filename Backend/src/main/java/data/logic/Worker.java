@@ -1,10 +1,12 @@
-package main.java.data.logic;
+package data.logic;
 
-import java.io.IOException;
+import data.dao.*;
+import logic.*;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.List;
+
 
 public class Worker {
     Server srv;
@@ -36,12 +38,12 @@ public class Worker {
             t.start();
         } catch (Exception ex) { }
     }
-    
+
     public void stop(){
         continuar=false;
         System.out.println("Conexion cerrada...");
     }
-    
+
     public void listen(){
         int method;
         while (continuar) {

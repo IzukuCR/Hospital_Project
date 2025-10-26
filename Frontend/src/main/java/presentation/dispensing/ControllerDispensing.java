@@ -1,17 +1,9 @@
-package main.java.presentation.dispensing;
+package presentation.dispensing;
 
-
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.logic.Service;
-import prescription_dispatch.presentation.search_patients.SearchPatientsController;
-import prescription_dispatch.presentation.search_patients.SearchPatientsModel;
-
+import logic.*;
 import javax.swing.*;
-import java.awt.*;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
+
 
 public class ControllerDispensing {
     ModelDispensing model;

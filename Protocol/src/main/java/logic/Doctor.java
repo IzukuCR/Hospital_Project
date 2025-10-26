@@ -1,6 +1,8 @@
-package main.java.logic;
+package logic;
 
-public class Doctor extends User {
+import java.io.Serializable;
+
+public class Doctor extends User implements Serializable {
     private String specialty;
 
     public Doctor(String id, String name, String password, String specialty) {

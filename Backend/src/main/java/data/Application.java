@@ -1,6 +1,6 @@
 package data;
 
-import main.java.data.logic.Server;
+import data.logic.Server;
 
 public class Application {
     

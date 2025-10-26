@@ -1,17 +1,13 @@
-package main.java.presentation.dashboard;
+package presentation.dashboard;
 
+import logic.*;
+import org.jfree.chart.*;
 import com.github.lgooddatepicker.components.DatePicker;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
-import prescription_dispatch.logic.Medicine;
-
 import javax.swing.*;
 import java.awt.*;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
+import java.awt.event.*;
+import java.util.*;
+
 
 public class ViewDashboard extends JPanel implements PropertyChangeListener {
     private JPanel mainPanel;

@@ -1,11 +1,8 @@
-package main.java.presentation.dashboard;
+package presentation.dashboard;
 
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.logic.PrescriptionItem;
-import prescription_dispatch.logic.Service;
-
-import java.text.SimpleDateFormat;
+import logic.*;
 import java.util.*;
+
 
 public class ModelDashboard extends AbstractModelDashboard {
 

@@ -1,7 +1,6 @@
-package main.java.data.dao;
+package data.dao;
 
-import prescription_dispatch.logic.PrescriptionItem;
-
+import logic.PrescriptionItem;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,11 +15,11 @@ public class PrescriptionItemDAO {
 
     private PrescriptionItem fromRS(ResultSet rs) throws SQLException {
         PrescriptionItem it = new PrescriptionItem();
-        it.setPrescriptionId(rs.getString("prescriptionId")); // alias
-        it.setMedicineCode(rs.getString("medicineCode"));     // alias
+        it.setPrescriptionId(rs.getString("prescriptionId"));
+        it.setMedicineCode(rs.getString("medicineCode"));
         it.setQuantity(rs.getInt("quantity"));
         it.setInstructions(rs.getString("instructions"));
-        it.setDurationDays(rs.getInt("durationDays"));        // alias
+        it.setDurationDays(rs.getInt("durationDays"));
         return it;
     }
 
@@ -87,6 +86,4 @@ public class PrescriptionItemDAO {
             return db.executeUpdate(st);
         }
     }
-
-
 }

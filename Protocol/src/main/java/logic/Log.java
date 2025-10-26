@@ -1,14 +1,16 @@
-package main.java.logic;
+package logic;
 
-public class Log {
+import java.io.Serializable;
+
+public class Log implements Serializable {
     private String logPasswd;
 
     public Log() {
-        this.logPasswd= "";
+        this.logPasswd = "";
     }
 
-    public Log(String number) {
-        this.logPasswd = number;
+    public Log(String passwd) {
+        this.logPasswd = passwd;
     }
 
     public String getPasswd() {

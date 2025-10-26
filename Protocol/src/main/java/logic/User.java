@@ -1,6 +1,8 @@
-package main.java.logic;
+package logic;
 
-public abstract class User {
+import java.io.Serializable;
+
+public abstract class User implements Serializable {
     private String id;
     private String name;
     private String password;
@@ -12,8 +14,7 @@ public abstract class User {
     }
 
     public User(String id, String name) {
-        this.id = id;
-        this.name = name;
+        this(id, name, "");
     }
 
     public User(){
@@ -30,7 +31,4 @@ public abstract class User {
     public void setPassword(String password) {this.password = password;}
 
     public abstract String getType();
-
-
 }
-

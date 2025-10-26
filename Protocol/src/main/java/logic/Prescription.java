@@ -1,17 +1,22 @@
-package main.java.logic;
+package logic;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-
-public class Prescription {
+public class Prescription implements Serializable {
     private String id;
     private String patientId;
+    private String doctorId;
     private Date creationDate;
     private Date withdrawalDate;
     private String status;
     private List<PrescriptionItem> items;
-    private String doctorId;
+
+    public Prescription() {
+        this.items = new ArrayList<>();
+    }
 
     // Getters and setters
     public String getId() { return id; }
@@ -34,4 +39,8 @@ public class Prescription {
 
     public List<PrescriptionItem> getItems() { return items; }
     public void setItems(List<PrescriptionItem> items) { this.items = items; }
+
+    public void addItem(PrescriptionItem item) {
+        this.items.add(item);
+    }
 }

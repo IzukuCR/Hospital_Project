@@ -1,4 +1,7 @@
-package main.java.presentation.dispensing;
+package presentation.dispensing;
+
+import logic.*;
+import java.util.*;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

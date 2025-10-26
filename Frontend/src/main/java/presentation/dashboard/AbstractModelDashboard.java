@@ -1,9 +1,9 @@
-package main.java.presentation.dashboard;
+package presentation.dashboard;
 
+import logic.*;
+import java.util.*;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.util.Date;
-import java.util.Map;
 
 public abstract class AbstractModelDashboard {
     protected PropertyChangeSupport propertyChangeSupport;

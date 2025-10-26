@@ -1,25 +1,13 @@
-package main.java.presentation.dispensing;
+package presentation.dispensing;
 
-import com.github.lgooddatepicker.components.DatePicker;
-import prescription_dispatch.Application;
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.logic.PrescriptionItem;
-import prescription_dispatch.presentation.table_models.TableModelItems;
-import prescription_dispatch.presentation.table_models.TableModelPrescriptions;
-
+import logic.*;
+import presentation.*;
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.table.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.time.LocalDate;
-import java.util.List;
+import java.awt.event.*;
+import java.util.*;
+
 
 public class ViewDispensing extends JPanel implements PropertyChangeListener, ListSelectionListener  {
     private JPanel panel1;

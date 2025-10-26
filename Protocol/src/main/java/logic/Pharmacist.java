@@ -1,6 +1,8 @@
-package main.java.logic;
+package logic;
 
-public class Pharmacist extends User {
+import java.io.Serializable;
+
+public class Pharmacist extends User implements Serializable {
     private String shift;
 
     public Pharmacist(String id, String name, String password, String shift) {
@@ -9,7 +11,7 @@ public class Pharmacist extends User {
     }
 
     public Pharmacist() {
-        this("","","",null);
+        this("","","", "");
     }
 
     @Override
@@ -18,4 +20,3 @@ public class Pharmacist extends User {
     public String getShift(){return shift;}
     public void setShift(String shift){this.shift = shift;}
 }
-

@@ -1,33 +1,39 @@
-package main.java.logic;
+package logic;
 
-public class Patient extends User {
+import java.io.Serializable;
+
+public class Patient extends User implements Serializable {
     private String birthDate;
     private String phoneNumber;
 
-    public Patient(){}
-
-    public Patient(String id, String name, String birthDate, String phoneNumber) {
-        super(id,name);
+    public Patient(String id, String name, String password, String birthDate, String phoneNumber) {
+        super(id, name, password);
         this.birthDate = birthDate;
         this.phoneNumber = phoneNumber;
     }
 
-   public String getBirthDate() {
+    public Patient(){
+        this("", "", "", "", "");
+    }
+
+    public String getBirthDate() {
         return birthDate;
-   }
-   public void setBirthDate(String birthDate) {
+    }
+
+    public void setBirthDate(String birthDate) {
         this.birthDate = birthDate;
-   }
-   public String getPhoneNumber() {
+    }
+
+    public String getPhoneNumber() {
         return phoneNumber;
-   }
-   public void setPhoneNumber(String phoneNumber) {
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
-   }
+    }
 
     @Override
     public String getType() {
-        return "";
+        return "Patient";
     }
-
 }

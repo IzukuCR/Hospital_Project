@@ -1,16 +1,16 @@
-package main.java.logic;
+package logic;
 
-public class Medicine {
+import java.io.Serializable;
+
+public class Medicine implements Serializable {
     private String code;
     private String name;
     private String presentation;
-
 
     public Medicine(String code, String name, String presentation) {
         this.code = code;
         this.name = name;
         this.presentation = presentation;
-
     }
 
     public Medicine() {

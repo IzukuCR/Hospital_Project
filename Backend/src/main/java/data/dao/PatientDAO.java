@@ -1,10 +1,8 @@
-package main.java.data.dao;
+package data.dao;
 
-import prescription_dispatch.logic.Patient;
-
+import logic.Patient;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 

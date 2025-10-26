@@ -1,21 +1,17 @@
 package presentation.dashboard;
 
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.labels.StandardCategoryItemLabelGenerator;
-import org.jfree.chart.plot.CategoryPlot;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.renderer.category.LineAndShapeRenderer;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.DefaultPieDataset;
-
-import prescription_dispatch.logic.Medicine;
-import prescription_dispatch.logic.Service;
-
+import logic.*;
+import org.jfree.chart.*;
+import org.jfree.chart.axis.*;
+import org.jfree.chart.plot.*;
+import org.jfree.chart.renderer.category.*;
+import org.jfree.chart.labels.*;
+import org.jfree.data.category.*;
+import org.jfree.data.general.*;
 import java.awt.*;
+import java.awt.geom.*;
 import java.util.*;
-import java.util.List;
+
 
 public class ControllerDashboard {
 

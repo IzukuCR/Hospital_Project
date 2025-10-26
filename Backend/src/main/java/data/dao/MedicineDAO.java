@@ -1,12 +1,11 @@
 package data.dao;
 
-import prescription_dispatch.logic.Medicine;
-
+import logic.Medicine;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+
 
 public class MedicineDAO {
     private final Database db = Database.instance();
