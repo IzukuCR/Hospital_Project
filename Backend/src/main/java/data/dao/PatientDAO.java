@@ -4,6 +4,7 @@ import logic.Patient;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.sql.SQLException;
 import java.util.List;
 
 public class PatientDAO {
