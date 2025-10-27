@@ -1,8 +1,10 @@
 package data.dao;
 
 import logic.Prescription;
+
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class PrescriptionDAO {
@@ -13,14 +15,14 @@ public class PrescriptionDAO {
     private Prescription fromRS(ResultSet rs) throws SQLException {
         Prescription p = new Prescription();
         p.setId(rs.getString("id"));
-        p.setPatientId(rs.getString("patientId"));
+        p.setPatientId(rs.getString("patientId"));   // alias
         p.setDoctorId(rs.getString("doctorId"));
 
-        Timestamp cd = rs.getTimestamp("creationDate");
-        if (cd != null) p.setCreationDate(new java.util.Date(cd.getTime()));
+        Timestamp cd = rs.getTimestamp("creationDate");   // DATETIME -> Timestamp
+        if (cd != null) p.setCreationDate(new Date(cd.getTime()));
 
         Timestamp wd = rs.getTimestamp("withdrawalDate");
-        if (wd != null) p.setWithdrawalDate(new java.util.Date(wd.getTime()));
+        if (wd != null) p.setWithdrawalDate(new Date(wd.getTime()));
 
         p.setStatus(rs.getString("status"));
         return p;
@@ -66,7 +68,7 @@ public class PrescriptionDAO {
 
     public void create(Prescription p) throws SQLException {
         String sql = "INSERT INTO prescriptions " +
-                "(id, patient_id, doctor_id, creation_date, withdrawal_date, status) " +
+                "(id, name, doctor_id, creation_date, withdrawal_date, status) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement st = db.prepareStatement(sql)) {
             int i = 1;
@@ -124,6 +126,20 @@ public class PrescriptionDAO {
             st.setString(1, id);
             return db.executeUpdate(st);
         }
+    }
+
+    public List<Prescription> findByPatientId(String patientId) throws SQLException {
+        String sql = "SELECT id, patient_id AS patientId, doctor_id AS doctorId, " +
+                "       creation_date AS creationDate, withdrawal_date AS withdrawalDate, status " +
+                "FROM prescriptions WHERE patient_id = ?";
+        List<Prescription> out = new ArrayList<>();
+        try (PreparedStatement st = db.prepareStatement(sql)) {
+            st.setString(1, patientId);
+            try (ResultSet rs = db.executeQuery(st)) {
+                while (rs != null && rs.next()) out.add(fromRS(rs));
+            }
+        }
+        return out;
     }
 
     public List<Prescription> findByPatientName(String patientName) throws SQLException {
@@ -187,7 +203,7 @@ public class PrescriptionDAO {
             st.setString(1, doctorId);
             try (ResultSet rs = db.executeQuery(st)) {
                 while (rs != null && rs.next()) {
-                    out.add(fromRS(rs));
+                    out.add(fromRS(rs)); // usa tu helper que mapea Timestamp -> Date
                 }
             }
         }

@@ -1,6 +1,6 @@
-package main.java.presentation.pharmacists;
+package presentation.pharmacists;
 
-import prescription_dispatch.logic.Pharmacist;
+import logic.Pharmacist;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

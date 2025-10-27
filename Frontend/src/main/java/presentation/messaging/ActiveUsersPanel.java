@@ -1,7 +1,7 @@
-package main.java.presentation.messaging;
+package presentation.messaging;
 
-import prescription_dispatch.logic.ControllerMessaging;
-import prescription_dispatch.logic.Service;
+import logic.ControllerMessaging;
+import logic.Service;
 
 import javax.swing.*;
 import java.awt.*;

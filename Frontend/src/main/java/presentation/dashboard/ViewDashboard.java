@@ -1,13 +1,17 @@
 package presentation.dashboard;
 
-import logic.*;
-import org.jfree.chart.*;
 import com.github.lgooddatepicker.components.DatePicker;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import logic.Medicine;
+
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
-
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
 
 public class ViewDashboard extends JPanel implements PropertyChangeListener {
     private JPanel mainPanel;
@@ -207,12 +211,12 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }

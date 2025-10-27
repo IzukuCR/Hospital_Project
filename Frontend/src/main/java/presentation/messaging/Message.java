@@ -1,4 +1,4 @@
-package main.java.presentation.messaging;
+package presentation.messaging;
 
 public class Message {
     private final String sender;

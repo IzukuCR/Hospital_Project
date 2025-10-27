@@ -1,9 +1,9 @@
-package main.java.presentation.doctors;
+package presentation.doctors;
 
-import prescription_dispatch.logic.Doctor;
-import prescription_dispatch.presentation.Highlighter;
-import prescription_dispatch.presentation.messaging.ActiveUsersPanel;
-import prescription_dispatch.presentation.table_models.TableModelDoctor;
+import logic.Doctor;
+import presentation.Highlighter;
+import presentation.messaging.ActiveUsersPanel;
+import presentation.table_models.TableModelDoctor;
 
 import javax.swing.*;
 import java.awt.*;

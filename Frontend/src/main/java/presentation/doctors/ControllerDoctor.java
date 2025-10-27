@@ -1,7 +1,7 @@
-package main.java.presentation.doctors;
+package presentation.doctors;
 
-import prescription_dispatch.logic.Doctor;
-import prescription_dispatch.logic.Service;
+import logic.Doctor;
+import logic.Service;
 
 import java.util.List;
 

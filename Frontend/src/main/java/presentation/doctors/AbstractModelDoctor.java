@@ -1,4 +1,4 @@
-package main.java.presentation.doctors;
+package presentation.doctors;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

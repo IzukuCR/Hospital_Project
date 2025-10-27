@@ -1,6 +1,6 @@
-package main.java.presentation.search_patients;
+package presentation.search_patients;
 
-import prescription_dispatch.logic.Patient;
+import logic.Patient;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

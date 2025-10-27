@@ -1,6 +1,6 @@
-package main.java.presentation.table_models;
+package presentation.table_models;
 
-import prescription_dispatch.logic.PrescriptionItem;
+import logic.PrescriptionItem;
 
 public class TableModelItems extends AbstractTableModel<PrescriptionItem> implements javax.swing.table.TableModel  {
     public TableModelItems(int[] cols, java.util.List<PrescriptionItem> rows) {

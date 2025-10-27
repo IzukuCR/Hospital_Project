@@ -1,6 +1,6 @@
-package main.java.presentation.search_patients;
+package presentation.search_patients;
 
-import prescription_dispatch.presentation.table_models.TableModelPatient;
+import presentation.table_models.TableModelPatient;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

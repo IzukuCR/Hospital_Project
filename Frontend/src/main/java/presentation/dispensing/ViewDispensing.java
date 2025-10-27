@@ -1,13 +1,25 @@
 package presentation.dispensing;
 
-import logic.*;
-import presentation.*;
-import javax.swing.*;
-import javax.swing.table.*;
-import java.awt.*;
-import java.awt.event.*;
-import java.util.*;
+import com.github.lgooddatepicker.components.DatePicker;
+import logic.Patient;
+import logic.Prescription;
+import logic.PrescriptionItem;
+import presentation.table_models.TableModelItems;
+import presentation.table_models.TableModelPrescriptions;
+import Application;
 
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.time.LocalDate;
+import java.util.List;
 
 public class ViewDispensing extends JPanel implements PropertyChangeListener, ListSelectionListener  {
     private JPanel panel1;
@@ -246,12 +258,12 @@ public class ViewDispensing extends JPanel implements PropertyChangeListener, Li
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }
@@ -278,7 +290,7 @@ public class ViewDispensing extends JPanel implements PropertyChangeListener, Li
         updatePrescriptionsTable(model.getPrescriptionsList());
         setPatient(model.getCurrentPatient());
         Prescription cp = model.getCurrentPrescription();
-        List<prescription_dispatch.logic.PrescriptionItem> items =
+        List<logic.PrescriptionItem> items =
                 (cp != null && cp.getItems() != null) ? cp.getItems() : List.of();
         medicinesTable.setModel(new TableModelItems(items));
     }

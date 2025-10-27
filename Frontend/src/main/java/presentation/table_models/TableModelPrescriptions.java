@@ -1,7 +1,7 @@
-package main.java.presentation.table_models;
+package presentation.table_models;
 
 
-import prescription_dispatch.logic.Prescription;
+import logic.Prescription;
 
 import java.util.List;
 

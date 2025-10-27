@@ -1,12 +1,13 @@
 package logic;
 
-import logic.*;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
 
 
 public class Service {
@@ -20,6 +21,10 @@ public class Service {
     private PrescriptionService prescriptionService;
     private LogService logService;
 
+    Socket s;
+    ObjectOutputStream os;
+    ObjectInputStream is;
+
     public static Service instance() {
         if (theInstance == null) theInstance = new Service();
         return theInstance;
@@ -32,6 +37,13 @@ public class Service {
         medicineService = new MedicineService();
         prescriptionService = new PrescriptionService();
         logService = new LogService();
+        try {
+            s = new Socket(Protocol.SERVER, Protocol.PORT);
+            os = new ObjectOutputStream(s.getOutputStream());
+            is = new ObjectInputStream(s.getInputStream());
+        } catch (Exception e) {
+            System.exit(-1);
+        }
     }
 
     public DoctorService doctor() {
@@ -50,7 +62,9 @@ public class Service {
         return medicineService;
     }
 
-    public PrescriptionService prescription(){return prescriptionService;}
+    public PrescriptionService prescription() {
+        return prescriptionService;
+    }
 
     public LogService log() {
         return logService;
@@ -58,310 +72,231 @@ public class Service {
 
     public class DoctorService {
 
-        DoctorDAO dao = new DoctorDAO();
-        private DoctorService() {}
+        private DoctorService() {
+        }
 
         public Doctor create(Doctor d) throws Exception {
-            try {
-                if (dao.findById(d.getId()) != null) throw new Exception("Doctor already exists");
-                dao.create(d);
-                return dao.findById(d.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error creating doctor: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_CREATE);
+            os.writeObject(d);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Doctor) is.readObject();
+            else throw new Exception();
         }
+
         public Doctor searchByID(String id) throws Exception {
-            try {
-                Doctor d = dao.findById(id);
-                if (d == null) throw new Exception("Doctor not found");
-                return d;
-            } catch (SQLException ex) {
-                throw new Exception("Database error reading doctor: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_READ_BY_ID);
+            os.writeObject(id);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Doctor) is.readObject();
+            else throw new Exception();
         }
 
         public List<Doctor> searchByName(String name) throws Exception {
-            try {
-                List<Doctor> list = dao.searchByName(name);
-                if (list.isEmpty()) throw new Exception("No doctors found with name: " + name);
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error searching doctors: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_SEARCH_BY_NAME);
+            os.writeObject(name);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Doctor>) is.readObject();
+            else throw new Exception();
         }
 
         public Doctor update(Doctor d) throws Exception {
-            try {
-                if (dao.findById(d.getId()) == null) throw new Exception("Doctor not found for update");
-                int rows = dao.update(d);
-                if (rows == 0) throw new Exception("Update affected no rows");
-                return dao.findById(d.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error updating doctor: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_UPDATE);
+            os.writeObject(d);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Doctor) is.readObject();
+            else throw new Exception();
         }
 
         public boolean delete(Doctor doctor) throws Exception {
-            try {
-                String id = doctor.getId();
-                if (dao.findById(id) == null) throw new Exception("Doctor not found for deletion");
-                return dao.deleteById(id) > 0;
-            } catch (SQLException ex) {
-                throw new Exception("Database error deleting doctor: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_DELETE);
+            os.writeObject(doctor);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (boolean) is.readObject();
+            else throw new Exception();
         }
 
         public Doctor validateLogin(Doctor doctor) throws Exception {
-            prescription_dispatch.data.DoctorDAO dao = new prescription_dispatch.data.DoctorDAO();
-            Doctor found = dao.findById(doctor.getId());
-            if (found != null && found.getPassword().equals(doctor.getPassword())) {
-                return found;
-            }
-            return null;
+            os.writeInt(Protocol.DOCTOR_VALIDATE_LOGIN);
+            os.writeObject(doctor);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Doctor) is.readObject();
+            else throw new Exception();
         }
 
         public List<Doctor> getDoctors() throws Exception {
-            try {
-                List<Doctor> list = dao.findAll();
-                if (list.isEmpty()) throw new Exception("No doctors on list.. Add some first");
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading doctors: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.DOCTOR_GET_ALL);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Doctor>) is.readObject();
+            else throw new Exception();
         }
     }
 
     public class PharmacistService {
-        private final PharmacistDAO dao = new PharmacistDAO();
-        private PharmacistService() {}
+
+        private PharmacistService() {
+        }
 
         public Pharmacist create(Pharmacist ph) throws Exception {
-            try {
-                if (dao.findById(ph.getId()) != null) {
-                    throw new Exception("Pharmacist already exists");
-                }
-                dao.create(ph);
-                return dao.findById(ph.getId()); // Recupera el farmacéutico recién insertado
-            } catch (SQLException ex) {
-                throw new Exception("Database error creating pharmacist: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_CREATE);
+            os.writeObject(ph);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Pharmacist) is.readObject();
+            else throw new Exception();
         }
 
         public Pharmacist readById(String id) throws Exception {
-            try {
-                Pharmacist ph = dao.findById(id);
-                if (ph == null) throw new Exception("Pharmacist not found");
-                return ph;
-            } catch (SQLException ex) {
-                throw new Exception("Database error reading pharmacist: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_READ_BY_ID);
+            os.writeObject(id);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Pharmacist) is.readObject();
+            else throw new Exception();
         }
 
 
         public Pharmacist update(Pharmacist ph) throws Exception {
-            try {
-                Pharmacist existing = dao.findById(ph.getId());
-                if (existing == null) throw new Exception("Pharmacist not found for update");
-
-                int rows = dao.update(ph);
-                if (rows == 0) throw new Exception("Update affected no rows");
-                return dao.findById(ph.getId()); // Recupera el farmacéutico actualizado
-            } catch (SQLException ex) {
-                throw new Exception("Database error updating pharmacist: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_UPDATE);
+            os.writeObject(ph);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Pharmacist) is.readObject();
+            else throw new Exception();
         }
 
         public boolean delete(Pharmacist ph) throws Exception {
-            try {
-                if (dao.findById(ph.getId()) == null) {
-                    throw new Exception("Pharmacist not found for deletion");
-                }
-                int rows = dao.deleteById(ph.getId());
-                return rows > 0;
-            } catch (SQLException ex) {
-                throw new Exception("Database error deleting pharmacist: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_DELETE);
+            os.writeObject(ph);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (boolean) is.readObject();
+            else throw new Exception();
         }
 
         public Pharmacist validateLogin(Pharmacist pharmacist) throws Exception {
-            try {
-                if (pharmacist == null ||
-                        pharmacist.getId() == null || pharmacist.getId().isBlank() ||
-                        pharmacist.getPassword() == null) {
-                    throw new Exception("Missing credentials");
-                }
-
-                Pharmacist found = dao.findById(pharmacist.getId());
-                if (found == null) {
-                    throw new Exception("User not found");
-                }
-
-                if (!found.getPassword().equals(pharmacist.getPassword())) {
-                    throw new Exception("Invalid credentials");
-                }
-
-                return found; // ok
-            } catch (SQLException ex) {
-                throw new Exception("Database error validating login: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_VALIDATE_LOGIN);
+            os.writeObject(pharmacist);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Pharmacist) is.readObject();
+            else throw new Exception();
         }
 
         public List<Pharmacist> searchByName(String name) throws Exception {
-            try {
-                List<Pharmacist> list = dao.searchByName(name);
-                if (list.isEmpty()) {
-                    throw new Exception("No pharmacists found with name: " + name);
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error searching pharmacists: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_SEARCH_BY_NAME);
+            os.writeObject(name);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Pharmacist>) is.readObject();
+            else throw new Exception();
         }
 
 
         public List<Pharmacist> getPharmacists() throws Exception {
-            try {
-                List<Pharmacist> list = dao.findAll();
-                if (list.isEmpty()) {
-                    throw new Exception("No pharmacists on list.. Add some first");
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading pharmacists: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PHARMACIST_GET_ALL);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Pharmacist>) is.readObject();
+            else throw new Exception();
         }
     }
 
     public class PatientService {
         private PatientService() {
         }
-        private final PatientDAO dao = new PatientDAO();
 
         public Patient create(Patient p) throws Exception {
-            try {
-                if (dao.findById(p.getId()) != null) throw new Exception("Patient already exists");
-                dao.create(p);
-                return dao.findById(p.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error creating patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_CREATE);
+            os.writeObject(p);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Patient) is.readObject();
+            else throw new Exception();
         }
 
         public Patient readById(String id) throws Exception {
-            try {
-                Patient p = dao.findById(id);
-                if (p == null) throw new Exception("Patient not found");
-                return p;
-            } catch (SQLException ex) {
-                throw new Exception("Database error reading patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_READ_BY_ID);
+            os.writeObject(id);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Patient) is.readObject();
+            else throw new Exception();
         }
 
         public List<Patient> searchByName(String name) throws Exception {
-            try {
-                List<Patient> list = dao.searchByName(name);
-                if (list.isEmpty()) throw new Exception("No patients found with name: " + name);
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error searching patients: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_SEARCH_BY_NAME);
+            os.writeObject(name);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Patient>) is.readObject();
+            else throw new Exception();
         }
 
         public List<Patient> getPatients() throws Exception {
-            try {
-                List<Patient> list = dao.findAll();
-                if (list.isEmpty()) throw new Exception("No patients on list.. Add some first");
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading patients: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_GET_ALL);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Patient>) is.readObject();
+            else throw new Exception();
         }
 
         public Patient update(Patient p) throws Exception {
-            try {
-                if (dao.findById(p.getId()) == null) throw new Exception("Patient not found for update");
-                if (dao.update(p) == 0) throw new Exception("Update affected no rows");
-                return dao.findById(p.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error updating patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_UPDATE);
+            os.writeObject(p);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Patient) is.readObject();
+            else throw new Exception();
         }
 
         public boolean delete(Patient patient) throws Exception {
-            try {
-                String id = patient.getId();
-                if (dao.findById(id) == null) throw new Exception("Patient not found for deletion");
-                return dao.deleteById(id) > 0;
-            } catch (SQLException ex) {
-                throw new Exception("Database error deleting patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PATIENT_DELETE);
+            os.writeObject(patient);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (boolean) is.readObject();
+            else throw new Exception();
         }
 
     }
 
     public class MedicineService {
 
-        private final MedicineDAO dao = new MedicineDAO();
         private MedicineService() {
         }
 
         public Medicine create(Medicine m) throws Exception {
-            try {
-                if (dao.findByCode(m.getCode()) != null) throw new Exception("Medicine already exists");
-                dao.create(m);
-                return dao.findByCode(m.getCode());
-            } catch (SQLException ex) {
-                throw new Exception("Database error creating medicine: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_CREATE);
+            os.writeObject(m);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Medicine) is.readObject();
+            else throw new Exception();
         }
 
         public Medicine readByCode(String code) throws Exception {
-            try {
-                Medicine m = dao.findByCode(code);
-                if (m == null) throw new Exception("Medicine not found");
-                return m;
-            } catch (SQLException ex) {
-                throw new Exception("Database error reading medicine: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_READ_BY_CODE);
+            os.writeObject(code);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Medicine) is.readObject();
+            else throw new Exception();
         }
 
         public List<Medicine> searchByName(String name) throws Exception {
-            try {
-                List<Medicine> list = dao.searchByName(name);
-                if (list.isEmpty()) throw new Exception("No medicines found with name: " + name);
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error searching medicines: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_SEARCH_BY_NAME);
+            os.writeObject(name);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Medicine>) is.readObject();
+            else throw new Exception();
         }
 
         public Medicine update(Medicine m) throws Exception {
-            try {
-                if (dao.findByCode(m.getCode()) == null) throw new Exception("Medicine not found for update");
-                if (dao.update(m) == 0) throw new Exception("Update affected no rows");
-                return dao.findByCode(m.getCode());
-            } catch (SQLException ex) {
-                throw new Exception("Database error updating medicine: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_UPDATE);
+            os.writeObject(m);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Medicine) is.readObject();
+            else throw new Exception();
         }
 
         public boolean delete(String code) throws Exception {
-            try {
-                if (dao.findByCode(code) == null) throw new Exception("Medicine not found for deletion");
-                return dao.deleteByCode(code) > 0;
-            } catch (SQLException ex) {
-                throw new Exception("Database error deleting medicine: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_DELETE);
+            os.writeObject(code);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (boolean) is.readObject();
+            else throw new Exception();
         }
 
         public List<Medicine> getMedicines() throws Exception {
-            try {
-                List<Medicine> list = dao.findAll();
-                if (list.isEmpty()) throw new Exception("No medicines on list.. Add some first");
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading medicines: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.MEDICINE_CREATE);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Medicine>) is.readObject();
+            else throw new Exception();
         }
     }
 
@@ -384,17 +319,15 @@ public class Service {
             return null; // User not found or invalid credentials
         }*/
 
-        public String validateUserType(String id, String password) throws Exception{
-            prescription_dispatch.data.DoctorDAO doctorDao = new prescription_dispatch.data.DoctorDAO();
-            prescription_dispatch.logic.Doctor doctor = doctorDao.findById(id);
-            if (doctor != null && doctor.getPassword().equals(password)) {
-                return "DOCTOR";
-            }
-
-            PharmacistDAO pharmacistDao = new PharmacistDAO();
+        public String validateUserType(String id, String password) throws Exception {
             try {
-                Pharmacist ph = pharmacistDao.findById(id);
-                if (ph != null && ph.getPassword().equals(password)){
+                Doctor doctor = doctorService.searchByID(id);
+                if (doctor != null && doctor.getPassword().equals(password)) {
+                    return "DOCTOR";
+                }
+
+                Pharmacist ph = pharmacistService.readById(id);
+                if (ph != null && ph.getPassword().equals(password)) {
                     return "PHARMACIST";
                 }
                 return null;
@@ -403,133 +336,84 @@ public class Service {
             }
         }
     }
+
     public class PrescriptionService {
 
-        private final PrescriptionDAO dao = new PrescriptionDAO();
-        private final PrescriptionItemDAO itemDao = new PrescriptionItemDAO();
-
-        private PrescriptionService() {}
+        private PrescriptionService() {
+        }
 
         public Prescription create(Prescription p) throws Exception {
-            try {
-                if (dao.findById(p.getId()) != null) throw new Exception("Prescription already exists");
-                dao.create(p);
-                return dao.findById(p.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error creating prescription: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_CREATE);
+            os.writeObject(p);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Prescription) is.readObject();
+            else throw new Exception();
         }
 
         public Prescription readById(String id) throws Exception {
-            try {
-                Prescription p = dao.findById(id);
-                if (p == null) throw new Exception("Prescription not found");
-
-                List<PrescriptionItem> items = itemDao.findByPrescriptionId(id);
-                p.setItems(items); // ← aquí se “inyecta” la lista
-                return p;
-            } catch (SQLException ex) {
-                throw new Exception("Database error reading prescription: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_READ_BY_ID);
+            os.writeObject(id);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Prescription) is.readObject();
+            else throw new Exception();
         }
 
         public Prescription update(Prescription p) throws Exception {
-            try {
-                if (dao.findById(p.getId()) == null) throw new Exception("Prescription not found for update");
-                if (dao.update(p) == 0) throw new Exception("Update affected no rows");
-                return dao.findById(p.getId());
-            } catch (SQLException ex) {
-                throw new Exception("Database error updating prescription: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_UPDATE);
+            os.writeObject(p);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (Prescription) is.readObject();
+            else throw new Exception();
         }
 
         public boolean delete(String id) throws Exception {
-            try {
-                if (dao.findById(id) == null) throw new Exception("Prescription not found for deletion");
-                // Borra items primero por FK
-                itemDao.deleteAllForPrescription(id);
-                return dao.deleteById(id) > 0;
-            } catch (SQLException ex) {
-                throw new Exception("Database error deleting prescription: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_DELETE);
+            os.writeObject(id);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (boolean) is.readObject();
+            else throw new Exception();
         }
 
         public List<Prescription> getPrescriptions() throws Exception {
-            try {
-                List<Prescription> list = dao.findAll();
-                if (list.isEmpty()) throw new Exception("No prescriptions on list.. Add some first");
-                for (Prescription p : list) {
-                    p.setItems(itemDao.findByPrescriptionId(p.getId()));
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading prescriptions: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_GET_ALL);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
+            else throw new Exception();
         }
 
         public List<Prescription> getPrescriptionsByPatientID(String patientId) throws Exception {
-            try {
-                List<Prescription> list = dao.findByPatientId(patientId);
-                if (list.isEmpty()) throw new Exception("No prescriptions for patient: " + patientId);
-
-                for (Prescription p : list) {
-                    p.setItems(itemDao.findByPrescriptionId(p.getId()));
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading prescriptions by patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_BY_PATIENT_ID);
+            os.writeObject(patientId);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
+            else throw new Exception();
         }
 
         public List<Prescription> getPrescriptionsByPatientName(String patientName) throws Exception {
-            try {
-                List<Prescription> list = dao.findByPatientName(patientName);
-                if (list.isEmpty()) throw new Exception("No prescriptions for patient: " + patientName);
-
-                for (Prescription p : list) {
-                    p.setItems(itemDao.findByPrescriptionId(p.getId()));
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading prescriptions by patient: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_BY_PATIENT_NAME);
+            os.writeObject(patientName);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
+            else throw new Exception();
         }
 
-        public List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws  Exception {
-            try {
-                ZoneId zone = ZoneId.systemDefault();
-                Timestamp from = Timestamp.valueOf(date.atStartOfDay());
-                Timestamp to   = Timestamp.valueOf(date.plusDays(1).atStartOfDay());
-
-                List<Prescription> list = dao.findByPatientIdAndWithdrawalRange(patientId, from, to);
-                if (list.isEmpty()) throw new Exception("No prescriptions for patient " + patientId + " on " + date);
-
-                for (Prescription p : list) {
-                    p.setItems(itemDao.findByPrescriptionId(p.getId()));
-                }
-                return list;
-            } catch (SQLException ex) {
-                throw new Exception("Database error filtering prescriptions: " + ex.getMessage(), ex);
-            }
+        public List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
+            os.writeInt(Protocol.PRESCRIPTION_BY_DATE);
+            os.writeObject(date == null ? null : date.toString());
+            os.writeObject(patientId);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
+            else throw new Exception();
         }
 
         public List<Prescription> getPrescriptionsByDoctor(String doctorId) throws Exception {
-            try {
-                List<Prescription> list = dao.findByDoctorId(doctorId);
-                if (list.isEmpty()) {
-                    throw new Exception("No prescriptions for doctor: " + doctorId);
-                }
-
-                PrescriptionItemDAO itemDao = new PrescriptionItemDAO();
-                for (Prescription p : list) {
-                    p.setItems(itemDao.findByPrescriptionId(p.getId()));
-                }
-                return list;
-
-            } catch (SQLException ex) {
-                throw new Exception("Database error loading prescriptions by doctor: " + ex.getMessage(), ex);
-            }
+            os.writeInt(Protocol.PRESCRIPTION_BY_DOCTOR);
+            os.writeObject(doctorId);
+            os.flush();
+            if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
+            else throw new Exception();
         }
+
     }
 
     public static class MessagingService {

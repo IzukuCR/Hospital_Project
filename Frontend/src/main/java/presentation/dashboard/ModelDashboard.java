@@ -1,8 +1,11 @@
 package presentation.dashboard;
 
-import logic.*;
-import java.util.*;
+import logic.Prescription;
+import logic.PrescriptionItem;
+import logic.Service;
 
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ModelDashboard extends AbstractModelDashboard {
 

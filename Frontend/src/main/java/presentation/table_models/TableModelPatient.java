@@ -1,6 +1,6 @@
-package main.java.presentation.table_models;
+package presentation.table_models;
 
-import prescription_dispatch.logic.Patient;
+import logic.Patient;
 
 import java.util.Collections;
 import java.util.List;

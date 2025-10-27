@@ -1,9 +1,16 @@
 package presentation.dispensing;
 
-import logic.*;
-import javax.swing.*;
-import java.util.*;
+import logic.Patient;
+import logic.Prescription;
+import logic.Service;
+import presentation.search_patients.SearchPatientsController;
+import presentation.search_patients.SearchPatientsModel;
 
+import javax.swing.*;
+import java.awt.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ControllerDispensing {
     ModelDispensing model;
@@ -86,8 +93,8 @@ public class ControllerDispensing {
     }
     public void onSearchPatientRequested() {
 
-        prescription_dispatch.presentation.search_patients.View searchView =
-                new prescription_dispatch.presentation.search_patients.View();
+       presentation.search_patients.View searchView =
+                new presentation.search_patients.View();
         SearchPatientsModel searchModel = new SearchPatientsModel();
         SearchPatientsController searchCtrl = new SearchPatientsController(searchView, searchModel);
 

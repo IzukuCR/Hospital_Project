@@ -1,9 +1,9 @@
-package main.java.presentation.search_patients;
+package presentation.search_patients;
 
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.logic.Service;
-import prescription_dispatch.presentation.search_patients.PatientSelectionListener;
-import prescription_dispatch.presentation.table_models.TableModelPatient;
+import logic.Patient;
+import logic.Service;
+import presentation.search_patients.PatientSelectionListener;
+import presentation.table_models.TableModelPatient;
 
 import javax.swing.*;
 import java.awt.*;

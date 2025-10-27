@@ -1,4 +1,4 @@
-package main.java.presentation.table_models;
+package presentation.table_models;
 
 import java.util.ArrayList;
 import java.util.List;
