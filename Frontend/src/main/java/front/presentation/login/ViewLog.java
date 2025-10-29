@@ -23,15 +23,6 @@ public class ViewLog extends JFrame {
     private ModelLog modelLog;
 
     public ViewLog() {
-        panel = new JPanel();
-        panel.setLayout(new BorderLayout());
-
-        JLabel testLabel = new JLabel("Login Screen");
-        testLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        panel.add(testLabel, BorderLayout.CENTER);
-
-        // Add a visible border to check if panel is showing
-        panel.setBorder(BorderFactory.createLineBorder(Color.RED, 2));
 
         Highlighter highlighter = new Highlighter(Color.GREEN);
         usernameField.addMouseListener(highlighter);
@@ -142,7 +133,11 @@ public class ViewLog extends JFrame {
     }
 
     public void disposeView() {
-        dispose();
+
+        Window window = SwingUtilities.getWindowAncestor(panel);
+        if (window != null) {
+            window.dispose();
+        }
     }
 
     public Component getPanel() {

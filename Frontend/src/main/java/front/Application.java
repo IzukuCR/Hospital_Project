@@ -32,6 +32,7 @@ import front.presentation.prescriptions.ViewPrescription;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Timer;
 
 public class Application {
     private static JFrame currentWindow;
@@ -67,7 +68,7 @@ public class Application {
     public static void main(String[] args) {
         System.out.println("Starting application...");
 
-        // Set look and feel
+        // Set look and feel first
         try {
             UIManager.setLookAndFeel(new FlatDarculaLaf());
             System.out.println("Look and feel set successfully");
@@ -80,14 +81,13 @@ public class Application {
             }
         }
 
-        // Ensure all Swing creation runs on EDT
         SwingUtilities.invokeLater(() -> {
             try {
-                System.out.println("Initializing components...");
+                // Initialize components FIRST
                 initializeComponents();
-                System.out.println("Components initialized");
+                System.out.println("Components initialized successfully");
 
-                System.out.println("Creating login window...");
+                // THEN create login window
                 JFrame frame = new JFrame("Hospital Login");
                 frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
@@ -102,17 +102,22 @@ public class Application {
                 frame.setSize(400, 300);
                 frame.setLocationRelativeTo(null);
                 frame.setVisible(true);
-                System.out.println("Login window should be visible now");
 
             } catch (Exception ex) {
-                System.out.println("Error in EDT: " + ex.getMessage());
+                System.err.println("Error in EDT: " + ex.getMessage());
                 ex.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Error initializing application: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
         });
     }
 
+
+
     private static void initializeComponents() {
-        // Initialize models
+        // Create all models first
         ModelDoctor doctorModel = new ModelDoctor();
         ModelPharmacist pharmacistModel = new ModelPharmacist();
         ModelPatient patientModel = new ModelPatient();
@@ -122,47 +127,49 @@ public class Application {
         ModelHistory historyModel = new ModelHistory();
         ModelDashboard dashboardModel = new ModelDashboard();
 
-
-        // Initialize views
+        // Create all views
         doctorView = new ViewDoctor();
         pharmacistView = new ViewPharmacist();
         patientView = new ViewPatient();
         medicineView = new ViewMedicine();
         prescriptionView = new ViewPrescription();
-        dispensingView =new ViewDispensing();
+        dispensingView = new ViewDispensing();
         historyView = new ViewHistory();
         dashboardView = new ViewDashboard();
         infoWindow = new InfoWindow();
 
-        // Initialize controllers
+        // Create and connect all controllers
         doctorController = new ControllerDoctor(doctorView, doctorModel);
-        pharmacistController = new ControllerPharmacist(pharmacistView, pharmacistModel);
-        patientController = new ControllerPatient(patientView, patientModel);
-        medicineController = new ControllerMedicine(medicineView, medicineModel);
-        prescriptionController = new ControllerPrescription(prescriptionView,prescriptionModel);
-        dispensingController =new ControllerDispensing(dispensingView,dispensingModel);
-        historyController = new ControllerHistory(historyView, historyModel);
-        dashboardController = new ControllerDashboard(dashboardView, dashboardModel);
-
-
-        // Configure views with their controllers and models
         doctorView.setControllerDoc(doctorController);
         doctorView.setModelDoc(doctorModel);
 
+        pharmacistController = new ControllerPharmacist(pharmacistView, pharmacistModel);
         pharmacistView.setControllerPharm(pharmacistController);
         pharmacistView.setModelPharm(pharmacistModel);
 
+        patientController = new ControllerPatient(patientView, patientModel);
         patientView.setControllerPat(patientController);
         patientView.setModelPat(patientModel);
 
+        medicineController = new ControllerMedicine(medicineView, medicineModel);
         medicineView.setControllerMed(medicineController);
         medicineView.setModelMed(medicineModel);
 
+        prescriptionController = new ControllerPrescription(prescriptionView, prescriptionModel);
         prescriptionView.setController(prescriptionController);
         prescriptionView.setModel(prescriptionModel);
 
+        dispensingController = new ControllerDispensing(dispensingView, dispensingModel);
+        dispensingView.setController(dispensingController);
+        dispensingView.setModel(dispensingModel);
+
+        historyController = new ControllerHistory(historyView, historyModel);
         historyView.setControllerHistory(historyController);
         historyView.setModelHistory(historyModel);
+
+        dashboardController = new ControllerDashboard(dashboardView, dashboardModel);
+
+        System.out.println("All components initialized successfully");
     }
 
     private static void showLoginWindow() {

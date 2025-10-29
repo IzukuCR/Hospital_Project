@@ -298,7 +298,7 @@ public class Service {
         }
 
         public List<Medicine> getMedicines() throws Exception {
-            os.writeInt(Protocol.MEDICINE_CREATE);
+            os.writeInt(Protocol.MEDICINE_GET_ALL);
             os.flush();
             if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Medicine>) is.readObject();
             else throw new Exception();

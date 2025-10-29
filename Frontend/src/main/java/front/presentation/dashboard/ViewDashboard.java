@@ -202,7 +202,7 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
 
     public void setControllerDashboard(ControllerDashboard controller) {
         this.controller = controller;
-        loadMedicinesList();
+        //loadMedicinesList();
     }
 
     public void setModelDashboard(AbstractModelDashboard model) {

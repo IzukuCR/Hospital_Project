@@ -28,7 +28,9 @@ public class Refresher {
     public void stop(){
         condition=false;
     }
+
     long c=0;
+
     private void refresh(){
         System.out.println(c++);
         SwingUtilities.invokeLater(

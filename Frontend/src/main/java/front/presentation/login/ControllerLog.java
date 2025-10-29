@@ -155,23 +155,41 @@ public class ControllerLog {
                 return;
             }
 
-            String userType = services.log().validateUserType(username, password);
+            // Try to validate as doctor first
+            try {
+                Doctor doctor = new Doctor();
+                doctor.setId(username);
+                doctor.setPassword(password);
+                Doctor validatedDoctor = services.doctor().validateLogin(doctor);
 
-            if (userType != null) {
-                if (Application.USER_TYPE_DOCTOR.equals(userType)) {
-                    Doctor doctor = findDoctorByCredentials(username, password);
-                    if (doctor != null) {
-                        //data.setCurrentDoctor(doctor);
-                        System.out.println("Doctor logged in: " + doctor.getName());
-                    }
+                if (validatedDoctor != null) {
+                    JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                    Application.showUserWindow(Application.USER_TYPE_DOCTOR, username);
+                    viewLog.disposeView();
+                    return;
                 }
-
-                JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
-                Application.showUserWindow(userType, username);
-                viewLog.disposeView();
-            } else {
-                viewLog.showError("Invalid username or password");
+            } catch (Exception e) {
+                // Continue to pharmacist validation
             }
+
+            // Try to validate as pharmacist
+            try {
+                Pharmacist pharmacist = new Pharmacist();
+                pharmacist.setId(username);
+                pharmacist.setPassword(password);
+                Pharmacist validatedPharmacist = services.pharmacist().validateLogin(pharmacist);
+
+                if (validatedPharmacist != null) {
+                    JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                    Application.showUserWindow(Application.USER_TYPE_PHARMACIST, username);
+                    viewLog.disposeView();
+                    return;
+                }
+            } catch (Exception e) {
+                // Login failed
+            }
+
+            viewLog.showError("Invalid username or password");
 
         } catch (Exception e) {
             viewLog.showError("System error: " + e.getMessage());
