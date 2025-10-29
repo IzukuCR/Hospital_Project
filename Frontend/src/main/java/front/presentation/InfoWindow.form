@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="front.presentation.InfoWindow">
+  <grid id="27dc6" binding="mainPanel" layout-manager="BorderLayout" hgap="0" vgap="0">
+    <constraints>
+      <xy x="20" y="20" width="800" height="600"/>
+    </constraints>
+    <properties>
+      <background color="-10395295"/>
+      <foreground color="-10395295"/>
+      <preferredSize width="800" height="600"/>
+    </properties>
+    <border type="none"/>
+    <children>
+      <component id="a5b2c" class="javax.swing.JLabel" binding="titleLabel">
+        <constraints border-constraint="North"/>
+        <properties>
+          <background color="-14605013"/>
+          <font name="Arial" size="28" style="1"/>
+          <foreground color="-10395295"/>
+          <horizontalAlignment value="0"/>
+          <text value="Prescription and dispensing of medicines"/>
+        </properties>
+      </component>
+      <grid id="imagePanel" binding="imagePanel" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="1">
+        <constraints border-constraint="Center"/>
+        <properties>
+          <background color="-7697782"/>
+          <foreground color="-10395295"/>
+        </properties>
+        <border type="none"/>
+        <children>
+          <component id="hospitalImage" class="javax.swing.JLabel" binding="hospitalImageLabel">
+            <constraints/>
+            <properties>
+              <foreground color="-10395295"/>
+              <horizontalAlignment value="0"/>
+              <preferredSize width="500" height="300"/>
+              <text value=""/>
+              <verticalAlignment value="0"/>
+            </properties>
+          </component>
+        </children>
+      </grid>
+    </children>
+  </grid>
+</form>
