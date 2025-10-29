@@ -1,4 +1,4 @@
-package main.java.presentation.history;
+package presentation.history;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

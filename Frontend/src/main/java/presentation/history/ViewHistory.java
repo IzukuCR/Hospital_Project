@@ -1,7 +1,7 @@
-package main.java.presentation.history;
+package presentation.history;
 
-import prescription_dispatch.logic.*;
-import prescription_dispatch.logic.Service;
+import logic.*;
+import logic.Service;
 
 import javax.swing.*;
 import java.beans.PropertyChangeEvent;
@@ -193,12 +193,12 @@ public class ViewHistory implements PropertyChangeListener {
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }

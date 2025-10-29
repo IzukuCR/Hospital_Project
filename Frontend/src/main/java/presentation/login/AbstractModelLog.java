@@ -1,4 +1,4 @@
-package main.java.presentation.login;
+package presentation.login;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

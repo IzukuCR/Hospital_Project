@@ -1,4 +1,4 @@
-package presentation;
+package presentation.search_patients;
 
 import logic.Patient;
 

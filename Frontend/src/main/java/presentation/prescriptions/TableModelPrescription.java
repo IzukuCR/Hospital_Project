@@ -1,22 +1,20 @@
-package main.java.presentation.prescriptions;
+package presentation.prescriptions;
 
-import prescription_dispatch.Application;
-import prescription_dispatch.data.Data;
-import prescription_dispatch.logic.Doctor;
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.presentation.table_models.AbstractTableModel;
+import logic.Doctor;
+import logic.Patient;
+import logic.Prescription;
+import presentation.table_models.AbstractTableModel;
+import logic.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class TableModelPrescription extends AbstractTableModel<Prescription> implements javax.swing.table.TableModel {
-    private Data data;
     private SimpleDateFormat dateFormat;
+    private final Service service = Service.instance();
 
     public TableModelPrescription(int[] cols, List<Prescription> rows) {
         super(cols, rows);
-        this.data = Application.getData();
         this.dateFormat = new SimpleDateFormat("dd-MM-yyyy");
     }
 
@@ -47,8 +45,10 @@ public class TableModelPrescription extends AbstractTableModel<Prescription> imp
             case ID:
                 return prescription.getId();
             case PATIENT:
-                Patient patient = data.findPatientById(prescription.getPatientId());
-                return patient != null ? patient.getName() + " (" + prescription.getPatientId() + ")" : prescription.getPatientId();
+                try {
+                    Patient patient = service.patient().readById(prescription.getPatientId());
+                    return patient != null ? patient.getName() + " (" + prescription.getPatientId() + ")" : prescription.getPatientId();
+                }catch(Exception e){}
             case CREATION_DATE:
                 return prescription.getCreationDate() != null ? dateFormat.format(prescription.getCreationDate()) : "N/A";
             case WITHDRAWAL_DATE:
@@ -62,8 +62,11 @@ public class TableModelPrescription extends AbstractTableModel<Prescription> imp
             case ITEMS_COUNT:
                 return prescription.getItems() != null ? prescription.getItems().size() : 0;
             case DOCTOR:
-                Doctor doctor = data.findDoctorById(prescription.getDoctorId());
-                return doctor != null ? doctor.getName()  + " (" + prescription.getDoctorId() + ")" : prescription.getDoctorId();
+                try {
+                    Doctor doctor = service.doctor().searchByID(prescription.getDoctorId());
+                    return doctor != null ? doctor.getName()  + " (" + prescription.getDoctorId() + ")" : prescription.getDoctorId();
+                }catch(Exception e){}
+
             default: return "";
         }
     }

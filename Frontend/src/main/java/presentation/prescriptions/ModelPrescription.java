@@ -1,6 +1,8 @@
-package main.java.presentation.prescriptions;
+package presentation.prescriptions;
 
-import prescription_dispatch.logic.Prescription;
+import logic.Doctor;
+import logic.Medicine;
+import logic.Prescription;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
@@ -11,14 +13,18 @@ public class ModelPrescription {
     private List<Prescription> prescriptions;
     private Prescription current;
     private PropertyChangeSupport support;
+    private Doctor currentDoctor;
+    private List<Medicine> medicines;
 
     public static final String CURRENT = "current";
     public static final String LIST = "list";
 
     public ModelPrescription() {
         prescriptions = new ArrayList<>();
+        medicines = new ArrayList<>();
         current = new Prescription();
         support = new PropertyChangeSupport(this);
+        currentDoctor = new Doctor();
     }
 
     public List<Prescription> getPrescriptions() {
@@ -66,5 +72,22 @@ public class ModelPrescription {
             }
         }
         return null;
+    }
+    public void setDoctor(Doctor doctor) {
+        Doctor oldDoctor = this.currentDoctor;
+        this.currentDoctor = doctor;
+        support.firePropertyChange(CURRENT, oldDoctor, this.currentDoctor);
+    }
+
+    public Doctor getDoctor() {
+        return this.currentDoctor;
+    }
+    public List<Medicine> getMedicines() {
+        return medicines;
+    }
+    public void setMedicines(List<Medicine> medicines) {
+        List<Medicine> oldMedicines = this.medicines;
+        this.medicines = new ArrayList<>(medicines);
+        support.firePropertyChange(LIST, oldMedicines, this.medicines);
     }
 }

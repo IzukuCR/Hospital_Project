@@ -1,7 +1,7 @@
-package main.java.presentation.pharmacists;
+package presentation.pharmacists;
 
-import prescription_dispatch.logic.Pharmacist;
-import prescription_dispatch.presentation.table_models.AbstractTableModel;
+import logic.Pharmacist;
+import presentation.table_models.AbstractTableModel;
 
 import java.util.List;
 

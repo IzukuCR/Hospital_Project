@@ -1,4 +1,4 @@
-package main.java.presentation.patients;
+package presentation.patients;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

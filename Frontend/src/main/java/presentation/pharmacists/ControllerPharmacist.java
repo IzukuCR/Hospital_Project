@@ -1,7 +1,7 @@
-package main.java.presentation.pharmacists;
+package presentation.pharmacists;
 
-import prescription_dispatch.logic.Pharmacist;
-import prescription_dispatch.logic.Service;
+import logic.Pharmacist;
+import logic.Service;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package main.java.presentation.login;
+package presentation.login;
 
 public class ModelLog extends AbstractModelLog {
 

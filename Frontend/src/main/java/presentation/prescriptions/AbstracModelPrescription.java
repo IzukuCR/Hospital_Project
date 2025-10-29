@@ -1,4 +1,4 @@
-package main.java.presentation.prescriptions;
+package presentation.prescriptions;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

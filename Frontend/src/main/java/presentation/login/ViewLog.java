@@ -1,6 +1,6 @@
-package main.java.presentation.login;
+package presentation.login;
 
-import prescription_dispatch.presentation.Highlighter;
+import presentation.Highlighter;
 
 import javax.swing.*;
 import java.awt.*;

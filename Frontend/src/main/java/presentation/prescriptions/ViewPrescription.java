@@ -1,11 +1,10 @@
-package main.java.presentation.prescriptions;
+package presentation.prescriptions;
 
 import com.github.lgooddatepicker.components.DatePicker;
 import com.github.lgooddatepicker.components.DatePickerSettings;
-import prescription_dispatch.Application;
-import prescription_dispatch.data.Data;
-import prescription_dispatch.logic.*;
-import prescription_dispatch.presentation.Highlighter;
+import logic.Application;
+import logic.*;
+import presentation.Highlighter;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
@@ -55,14 +54,12 @@ public class ViewPrescription implements PropertyChangeListener {
     private static final String SEARCH_BY_PATIENT_ID = "Search by Patient ID";
     private static final String SEARCH_BY_PATIENT_NAME = "Search by Patient Name";
 
-    private Data data;
+    private final Service service = Service.instance();
 
     ControllerPrescription controller;
     ModelPrescription model;
 
     public ViewPrescription() {
-        this.data = Application.getData();
-
         initializeSearchComboBox();
 
         initializePrescriptionsTable();
@@ -78,8 +75,7 @@ public class ViewPrescription implements PropertyChangeListener {
         docNameFld.setEditable(false);
         docIdFld.setEditable(false);
 
-        Doctor initialDoctor = data.getCurrentDoctor();
-        setDoctor(initialDoctor);
+        setDoctor(model.getDoctor());
 
         changeUserButton.addActionListener(new ActionListener() {
             @Override
@@ -302,138 +298,144 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void handlePatientSearch() {
-        if (data.getPatients().isEmpty()) {
-            JOptionPane.showMessageDialog(panel,
-                    "No patients available. Please add patients first.",
-                    "No Patients",
-                    JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-
-        JDialog patientDialog = new JDialog((Frame) null, "Select Patient", true);
-        patientDialog.setSize(700, 500);
-        patientDialog.setLocationRelativeTo(panel);
-
-        JPanel dialogPanel = new JPanel(new BorderLayout(5, 5));
-        dialogPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
-        JTextField searchField = new JTextField(20);
-        JButton searchButton = new JButton("Search");
-        searchButton.setBackground(Color.decode("#476194"));
-
-        searchButton.setForeground(Color.white);
-        searchButton.setOpaque(true);
-
-        searchPanel.add(new JLabel("Search:"), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButton, BorderLayout.EAST);
-
-        String[] columnNames = {"ID", "Name", "Birth Date", "Phone"};
-        DefaultTableModel patientTableModel = new DefaultTableModel(columnNames, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) {
-                return false;
+        try{
+            if (service.patient().getPatients().size() == 0) {
+                JOptionPane.showMessageDialog(panel,
+                        "No patients available. Please add patients first.",
+                        "No Patients",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
             }
-        };
+            JDialog patientDialog = new JDialog((Frame) null, "Select Patient", true);
+            patientDialog.setSize(700, 500);
+            patientDialog.setLocationRelativeTo(panel);
 
-        JTable patientTable = new JTable(patientTableModel);
-        patientTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        patientTable.getTableHeader().setReorderingAllowed(false);
-        JScrollPane scrollPane = new JScrollPane(patientTable);
+            JPanel dialogPanel = new JPanel(new BorderLayout(5, 5));
+            dialogPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        List<Patient> allPatients = data.getPatients();
-        for (Patient patient : allPatients) {
-            patientTableModel.addRow(new Object[]{
-                    patient.getId(),
-                    patient.getName(),
-                    patient.getBirthDate(),
-                    patient.getPhoneNumber()
-            });
-        }
+            JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
+            JTextField searchField = new JTextField(20);
+            JButton searchButton = new JButton("Search");
+            searchButton.setBackground(Color.decode("#476194"));
 
-        Runnable filterPatients = () -> {
-            String searchText = searchField.getText().toLowerCase().trim();
-            patientTableModel.setRowCount(0);
+            searchButton.setForeground(Color.white);
+            searchButton.setOpaque(true);
 
+            searchPanel.add(new JLabel("Search:"), BorderLayout.WEST);
+            searchPanel.add(searchField, BorderLayout.CENTER);
+            searchPanel.add(searchButton, BorderLayout.EAST);
+
+            String[] columnNames = {"ID", "Name", "Birth Date", "Phone"};
+            DefaultTableModel patientTableModel = new DefaultTableModel(columnNames, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            JTable patientTable = new JTable(patientTableModel);
+            patientTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+            patientTable.getTableHeader().setReorderingAllowed(false);
+            JScrollPane scrollPane = new JScrollPane(patientTable);
+
+            List<Patient> allPatients = service.patient().getPatients();
             for (Patient patient : allPatients) {
-                if (searchText.isEmpty() ||
-                        patient.getId().toLowerCase().contains(searchText) ||
-                        patient.getName().toLowerCase().contains(searchText)) {
+                patientTableModel.addRow(new Object[]{
+                        patient.getId(),
+                        patient.getName(),
+                        patient.getBirthDate(),
+                        patient.getPhoneNumber()
+                });
+            }
 
-                    patientTableModel.addRow(new Object[]{
-                            patient.getId(),
-                            patient.getName(),
-                            patient.getBirthDate(),
-                            patient.getPhoneNumber()
-                    });
+            Runnable filterPatients = () -> {
+                String searchText = searchField.getText().toLowerCase().trim();
+                patientTableModel.setRowCount(0);
+
+                for (Patient patient : allPatients) {
+                    if (searchText.isEmpty() ||
+                            patient.getId().toLowerCase().contains(searchText) ||
+                            patient.getName().toLowerCase().contains(searchText)) {
+
+                        patientTableModel.addRow(new Object[]{
+                                patient.getId(),
+                                patient.getName(),
+                                patient.getBirthDate(),
+                                patient.getPhoneNumber()
+                        });
+                    }
                 }
-            }
-        };
+            };
 
-        searchField.addActionListener(e -> filterPatients.run());
-        searchButton.addActionListener(e -> filterPatients.run());
+            searchField.addActionListener(e -> filterPatients.run());
+            searchButton.addActionListener(e -> filterPatients.run());
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        JButton selectButton = new JButton("Select");
-        JButton cancelButton = new JButton("Cancel");
-
-
-        selectButton.setBackground(Color.decode("#52AC41"));  // Verde
-        cancelButton.setBackground(Color.decode("#AF4C4C"));  // Rojo
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton selectButton = new JButton("Select");
+            JButton cancelButton = new JButton("Cancel");
 
 
-        selectButton.setForeground(Color.black);
-        cancelButton.setForeground(Color.black);
+            selectButton.setBackground(Color.decode("#52AC41"));  // Verde
+            cancelButton.setBackground(Color.decode("#AF4C4C"));  // Rojo
 
 
-        selectButton.setOpaque(true);
-        cancelButton.setOpaque(true);
+            selectButton.setForeground(Color.black);
+            cancelButton.setForeground(Color.black);
 
-        selectButton.addActionListener(e -> {
-            int selectedRow = patientTable.getSelectedRow();
-            if (selectedRow >= 0) {
-                String patientId = (String) patientTable.getValueAt(selectedRow, 0);
-                String patientName = (String) patientTable.getValueAt(selectedRow, 1);
 
-                patientIdFld.setText(patientId);
-                patientNameFld.setText(patientName);
+            selectButton.setOpaque(true);
+            cancelButton.setOpaque(true);
 
-                patientDialog.dispose();
-            } else {
-                JOptionPane.showMessageDialog(patientDialog,
-                        "Please select a patient from the list",
-                        "Selection Required",
-                        JOptionPane.WARNING_MESSAGE);
-            }
-        });
+            selectButton.addActionListener(e -> {
+                int selectedRow = patientTable.getSelectedRow();
+                if (selectedRow >= 0) {
+                    String patientId = (String) patientTable.getValueAt(selectedRow, 0);
+                    String patientName = (String) patientTable.getValueAt(selectedRow, 1);
 
-        cancelButton.addActionListener(e -> patientDialog.dispose());
+                    patientIdFld.setText(patientId);
+                    patientNameFld.setText(patientName);
 
-        buttonPanel.add(selectButton);
-        buttonPanel.add(cancelButton);
-
-        dialogPanel.add(searchPanel, BorderLayout.NORTH);
-        dialogPanel.add(scrollPane, BorderLayout.CENTER);
-        dialogPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        patientTable.setAutoCreateRowSorter(true);
-
-        patientTable.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                if (evt.getClickCount() == 2) {
-                    selectButton.doClick();
+                    patientDialog.dispose();
+                } else {
+                    JOptionPane.showMessageDialog(patientDialog,
+                            "Please select a patient from the list",
+                            "Selection Required",
+                            JOptionPane.WARNING_MESSAGE);
                 }
-            }
-        });
+            });
 
-        patientDialog.setContentPane(dialogPanel);
-        patientDialog.setVisible(true);
+            cancelButton.addActionListener(e -> patientDialog.dispose());
+
+            buttonPanel.add(selectButton);
+            buttonPanel.add(cancelButton);
+
+            dialogPanel.add(searchPanel, BorderLayout.NORTH);
+            dialogPanel.add(scrollPane, BorderLayout.CENTER);
+            dialogPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+            patientTable.setAutoCreateRowSorter(true);
+
+            patientTable.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent evt) {
+                    if (evt.getClickCount() == 2) {
+                        selectButton.doClick();
+                    }
+                }
+            });
+
+            patientDialog.setContentPane(dialogPanel);
+            patientDialog.setVisible(true);
+        }catch (Exception e){
+            JOptionPane.showMessageDialog(panel,
+                    "Error accessing patients data: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void handleMedicineSearch() {
-        if (data.getMedicines().isEmpty()) {
+        if (model.getMedicines().isEmpty()) {
             JOptionPane.showMessageDialog(panel,
                     "No medicines available. Please add medicines first.",
                     "No Medicines",
@@ -477,7 +479,7 @@ public class ViewPrescription implements PropertyChangeListener {
 
         JScrollPane scrollPane = new JScrollPane(medicineTable);
 
-        List<Medicine> allMedicines = data.getMedicines();
+        List<Medicine> allMedicines = model.getMedicines();
         for (Medicine medicine : allMedicines) {
             medicineTableModel.addRow(new Object[]{
                     medicine.getCode(),
@@ -615,8 +617,8 @@ public class ViewPrescription implements PropertyChangeListener {
 
     private void handleSave() {
         try {
-            Doctor currentDoctor = data.getCurrentDoctor();
-            if (currentDoctor == null) {
+
+            if (model.getDoctor() == null) {
                 JOptionPane.showMessageDialog(panel,
                         "No current doctor available. Please select a doctor first.",
                         "Error", JOptionPane.ERROR_MESSAGE);
@@ -627,7 +629,7 @@ public class ViewPrescription implements PropertyChangeListener {
             Prescription current = model.getCurrent();
             if (current != null && current.getId() != null && !current.getId().isEmpty()) {
                 // Validar que la prescripción pertenezca al médico actual
-                if (!current.getDoctorId().equals(currentDoctor.getId())) {
+                if (!current.getDoctorId().equals(model.getDoctor().getId())) {
                     JOptionPane.showMessageDialog(panel,
                             "Cannot edit prescription. It does not belong to the current doctor.",
                             "Error of permission", JOptionPane.ERROR_MESSAGE);
@@ -662,7 +664,7 @@ public class ViewPrescription implements PropertyChangeListener {
             Prescription newPrescription = new Prescription();
             newPrescription.setPatientId(patientIdFld.getText().trim());
             newPrescription.setWithdrawalDate(convertToDate(selectedDate));
-            newPrescription.setDoctorId(currentDoctor.getId());
+            newPrescription.setDoctorId(model.getDoctor().getId());
             newPrescription.setItems(new ArrayList<>(current.getItems()));
             newPrescription.setId("P" + System.currentTimeMillis());
 
@@ -711,8 +713,8 @@ public class ViewPrescription implements PropertyChangeListener {
                 return;
             }
 
-            // Validar que la prescripción pertenezca al médico actual
-            Doctor currentDoctor = data.getCurrentDoctor();
+
+            Doctor currentDoctor = model.getDoctor();
             Prescription selectedPrescription = controller.getPrescription(id);
 
             if (selectedPrescription != null && currentDoctor != null &&
@@ -756,10 +758,10 @@ public class ViewPrescription implements PropertyChangeListener {
 
         setPrescriptionEditable(true);
 
-        Doctor currentDoctor = data.getCurrentDoctor();
-        if (currentDoctor != null) {
-            docIdFld.setText(currentDoctor.getId());
-            docNameFld.setText(currentDoctor.getName());
+
+        if (model.getDoctor() != null) {
+            docIdFld.setText(model.getDoctor() .getId());
+            docNameFld.setText(model.getDoctor() .getName());
         }
     }
 
@@ -769,58 +771,63 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void displayPrescription(Prescription prescription) {
-        idFld.setText(prescription.getId());
-        patientIdFld.setText(prescription.getPatientId());
+        try{
+            idFld.setText(prescription.getId());
+            patientIdFld.setText(prescription.getPatientId());
 
-        Patient patient = data.findPatientById(prescription.getPatientId());
-        if (patient != null) {
-            patientNameFld.setText(patient.getName());
-        }
-
-        Doctor currentDoctor = data.getCurrentDoctor();
-        if (currentDoctor != null) {
-            docIdFld.setText(currentDoctor.getId());
-            docNameFld.setText(currentDoctor.getName());
-        }
-
-        itemsTableModel.setRowCount(0);
-        if (prescription.getItems() != null) {
-            for (PrescriptionItem item : prescription.getItems()) {
-                Medicine medicine = data.findMedicineByCode(item.getMedicineCode());
-                String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
-
-                itemsTableModel.addRow(new Object[]{
-                        item.getMedicineCode(),
-                        medicineName,
-                        item.getQuantity(),
-                        item.getInstructions(),
-                        item.getDurationDays()
-                });
+            Patient patient = service.patient().readById(prescription.getPatientId());
+            if (patient != null) {
+                patientNameFld.setText(patient.getName());
             }
-        }
 
-        if (prescription.getWithdrawalDate() != null) {
-            LocalDate withdrawalDate = convertToLocalDate(prescription.getWithdrawalDate());
-            datePicker.setDate(withdrawalDate);
-        } else {
-            datePicker.setDate(null);
-        }
-
-        model.setCurrent(prescription);
-
-        boolean isOwnPrescription = controller.canEditPrescription(prescription.getId());
-        setPrescriptionEditable(isOwnPrescription);
-
-        if (!isOwnPrescription) {
-            Doctor prescriptionDoctor = data.findDoctorById(prescription.getDoctorId());
-            if (prescriptionDoctor != null) {
-                JOptionPane.showMessageDialog(panel,
-                        "Prescription created by: " + prescriptionDoctor.getName() +
-                                "\nOnly view, no modify.",
-                        "Another Doctor's prescription",
-                        JOptionPane.INFORMATION_MESSAGE);
+            if (model.getDoctor()  != null) {
+                docIdFld.setText(model.getDoctor() .getId());
+                docNameFld.setText(model.getDoctor() .getName());
             }
+
+            itemsTableModel.setRowCount(0);
+            if (prescription.getItems() != null) {
+                for (PrescriptionItem item : prescription.getItems()) {
+
+                    Medicine medicine = service.medicine().readByCode(item.getMedicineCode());
+                    String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
+
+                    itemsTableModel.addRow(new Object[]{
+                            item.getMedicineCode(),
+                            medicineName,
+                            item.getQuantity(),
+                            item.getInstructions(),
+                            item.getDurationDays()
+                    });
+                }
+            }
+
+            if (prescription.getWithdrawalDate() != null) {
+                LocalDate withdrawalDate = convertToLocalDate(prescription.getWithdrawalDate());
+                datePicker.setDate(withdrawalDate);
+            } else {
+                datePicker.setDate(null);
+            }
+
+            model.setCurrent(prescription);
+
+            boolean isOwnPrescription = controller.canEditPrescription(prescription.getId());
+            setPrescriptionEditable(isOwnPrescription);
+
+            if (!isOwnPrescription) {
+                Doctor prescriptionDoctor = service.doctor().searchByID(prescription.getDoctorId());
+                if (prescriptionDoctor != null) {
+                    JOptionPane.showMessageDialog(panel,
+                            "Prescription created by: " + prescriptionDoctor.getName() +
+                                    "\nOnly view, no modify.",
+                            "Another Doctor's prescription",
+                            JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+        }catch(Exception e){
+            e.printStackTrace();
         }
+
     }
 
     private void setPrescriptionEditable(boolean editable) {
@@ -865,22 +872,26 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void refreshItemsTable() {
-        itemsTableModel.setRowCount(0);
-        Prescription current = model.getCurrent();
+        try{
+            itemsTableModel.setRowCount(0);
+            Prescription current = model.getCurrent();
 
-        if (current != null && current.getItems() != null) {
-            for (PrescriptionItem item : current.getItems()) {
-                Medicine medicine = data.findMedicineByCode(item.getMedicineCode());
-                String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
+            if (current != null && current.getItems() != null) {
+                for (PrescriptionItem item : current.getItems()) {
+                    Medicine medicine = service.medicine().readByCode((item.getMedicineCode()));
+                    String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
 
-                itemsTableModel.addRow(new Object[]{
-                        item.getMedicineCode(),
-                        medicineName,
-                        item.getQuantity(),
-                        item.getInstructions(),
-                        item.getDurationDays()
-                });
+                    itemsTableModel.addRow(new Object[]{
+                            item.getMedicineCode(),
+                            medicineName,
+                            item.getQuantity(),
+                            item.getInstructions(),
+                            item.getDurationDays()
+                    });
+                }
             }
+        }catch(Exception e){
+            e.printStackTrace();
         }
     }
 
@@ -898,12 +909,12 @@ public class ViewPrescription implements PropertyChangeListener {
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }

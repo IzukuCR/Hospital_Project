@@ -1,6 +1,6 @@
-package main.java.presentation.medicines;
+package presentation.medicines;
 
-import prescription_dispatch.logic.Medicine;
+import logic.Medicine;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

@@ -37,6 +37,7 @@ public class Service {
         medicineService = new MedicineService();
         prescriptionService = new PrescriptionService();
         logService = new LogService();
+
         try {
             s = new Socket(Protocol.SERVER, Protocol.PORT);
             os = new ObjectOutputStream(s.getOutputStream());

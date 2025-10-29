@@ -1,6 +1,7 @@
 package presentation;
 
 import javax.swing.*;
+import java.awt.*;
 
 public class InfoWindow extends JPanel {
     private JPanel mainPanel;

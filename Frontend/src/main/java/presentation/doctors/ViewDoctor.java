@@ -192,7 +192,7 @@ public class ViewDoctor implements PropertyChangeListener {
     public void initializeMessaging(String doctorId) {
         this.currentDoctorId = doctorId;
         activeUsersPanel = new ActiveUsersPanel(currentDoctorId);
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentDoctorId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentDoctorId);
 
         rebuildPanel();
     }
@@ -215,7 +215,7 @@ public class ViewDoctor implements PropertyChangeListener {
             activeUsersPanel.cleanup();
         }
         if (currentDoctorId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentDoctorId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentDoctorId);
         }
     }
     private void handleSearch() {

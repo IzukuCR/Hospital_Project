@@ -1,20 +1,20 @@
-package main.java.presentation.history;
+package presentation.history;
 
-import prescription_dispatch.Application;
-import prescription_dispatch.data.Data;
-import prescription_dispatch.logic.*;
-import prescription_dispatch.presentation.table_models.AbstractTableModel;
+
+import logic.*;
+import presentation.table_models.AbstractTableModel;
 
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Set;
 
 public class TableModelHistory extends AbstractTableModel<Prescription> implements javax.swing.table.TableModel {
-    private Data data;
     private SimpleDateFormat dateFormat;
+    private Service service = Service.instance();
 
     public TableModelHistory(int[] cols, List<Prescription> rows) {
         super(cols, rows);
-        this.data = Application.getData();
+
         this.dateFormat = new SimpleDateFormat("yyyy-MM-dd");
     }
 
@@ -54,8 +54,13 @@ public class TableModelHistory extends AbstractTableModel<Prescription> implemen
             case PATIENT_ID:
                 return prescription.getPatientId();
             case PATIENT_NAME:
-                Patient patient = data.findPatientById(prescription.getPatientId());
-                return patient != null ? patient.getName() : "Unknown";
+                try {
+                    Patient patient = service.patient().readById(prescription.getPatientId());
+                    return patient != null ? patient.getName() : "Unknown";
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
+
             case CREATION_DATE:
                 return prescription.getCreationDate() != null ? dateFormat.format(prescription.getCreationDate()) : "N/A";
             case WITHDRAWAL_DATE:
@@ -65,8 +70,12 @@ public class TableModelHistory extends AbstractTableModel<Prescription> implemen
             case DOCTOR_ID:
                 return prescription.getDoctorId();
             case DOCTOR_NAME:
-                Doctor doctor = data.findDoctorById(prescription.getDoctorId());
-                return doctor != null ? doctor.getName() : "Unknown";
+                try {
+                    Doctor doctor = service.doctor().searchByID(prescription.getDoctorId());
+                    return doctor != null ? doctor.getName() : "Unknown";
+                }catch(Exception e) {
+                    e.printStackTrace();
+                }
             case ITEMS_COUNT:
                 return prescription.getItems() != null ? prescription.getItems().size() : 0;
             case MEDICINES_DETAILS:
@@ -85,14 +94,18 @@ public class TableModelHistory extends AbstractTableModel<Prescription> implemen
 
         StringBuilder details = new StringBuilder();
         for (PrescriptionItem item : prescription.getItems()) {
-            Medicine medicine = data.findMedicineByCode(item.getMedicineCode());
-            String medicineName = medicine != null ? medicine.getName() : item.getMedicineCode();
-            details.append(medicineName)
-                    .append(" (Qty: ")
-                    .append(item.getQuantity())
-                    .append(", Duration: ")
-                    .append(item.getDurationDays())
-                    .append(" days); ");
+            try {
+                Medicine medicine = service.medicine().readByCode(item.getMedicineCode());
+                String medicineName = medicine != null ? medicine.getName() : item.getMedicineCode();
+                details.append(medicineName)
+                        .append(" (Qty: ")
+                        .append(item.getQuantity())
+                        .append(", Duration: ")
+                        .append(item.getDurationDays())
+                        .append(" days); ");
+            }catch(Exception e){
+                e.printStackTrace();
+            }
         }
         return details.toString();
     }
@@ -105,12 +118,16 @@ public class TableModelHistory extends AbstractTableModel<Prescription> implemen
         StringBuilder instructions = new StringBuilder();
         for (PrescriptionItem item : prescription.getItems()) {
             if (item.getInstructions() != null && !item.getInstructions().trim().isEmpty()) {
-                Medicine medicine = data.findMedicineByCode(item.getMedicineCode());
-                String medicineName = medicine != null ? medicine.getName() : item.getMedicineCode();
-                instructions.append(medicineName)
-                        .append(": ")
-                        .append(item.getInstructions())
-                        .append("; ");
+                try {
+                    Medicine medicine = service.medicine().readByCode(item.getMedicineCode());
+                    String medicineName = medicine != null ? medicine.getName() : item.getMedicineCode();
+                    instructions.append(medicineName)
+                            .append(": ")
+                            .append(item.getInstructions())
+                            .append("; ");
+                }catch(Exception e){
+                    e.printStackTrace();
+                }
             }
         }
         return instructions.toString();

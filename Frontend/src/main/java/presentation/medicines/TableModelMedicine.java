@@ -1,7 +1,7 @@
-package main.java.presentation.medicines;
+package presentation.medicines;
 
-import prescription_dispatch.logic.Medicine;
-import prescription_dispatch.presentation.table_models.AbstractTableModel;
+import logic.Medicine;
+import presentation.table_models.AbstractTableModel;
 
 import java.util.List;
 

@@ -1,7 +1,7 @@
-package main.java.presentation.history;
+package presentation.history;
 
-import prescription_dispatch.logic.Prescription;
-import prescription_dispatch.logic.Service;
+import logic.Prescription;
+import logic.Service;
 
 import java.util.ArrayList;
 import java.util.List;

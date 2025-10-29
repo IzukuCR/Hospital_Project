@@ -6,7 +6,7 @@ import logic.Prescription;
 import logic.PrescriptionItem;
 import presentation.table_models.TableModelItems;
 import presentation.table_models.TableModelPrescriptions;
-import Application;
+import logic.Application;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;

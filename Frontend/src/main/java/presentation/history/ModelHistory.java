@@ -1,6 +1,6 @@
-package main.java.presentation.history;
+package presentation.history;
 
-import prescription_dispatch.logic.Prescription;
+import logic.Prescription;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;

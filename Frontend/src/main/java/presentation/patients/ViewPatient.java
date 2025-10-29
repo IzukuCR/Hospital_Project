@@ -1,8 +1,8 @@
-package main.java.presentation.patients;
+package presentation.patients;
 
-import prescription_dispatch.logic.Patient;
-import prescription_dispatch.presentation.Highlighter;
-import prescription_dispatch.presentation.table_models.TableModelPatient;
+import logic.Patient;
+import presentation.Highlighter;
+import presentation.table_models.TableModelPatient;
 
 import javax.swing.*;
 import java.awt.*;
@@ -294,12 +294,12 @@ public class ViewPatient implements PropertyChangeListener {
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }

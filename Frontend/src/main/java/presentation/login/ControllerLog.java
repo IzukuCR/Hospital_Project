@@ -1,10 +1,9 @@
-package main.java.presentation.login;
+package presentation.login;
 
-import prescription_dispatch.Application;
-import prescription_dispatch.data.Data;
-import prescription_dispatch.logic.Doctor;
-import prescription_dispatch.logic.Pharmacist;
-import prescription_dispatch.logic.Service;
+import logic.Application;
+import logic.Doctor;
+import logic.Pharmacist;
+import logic.Service;
 
 import javax.swing.*;
 
@@ -12,13 +11,11 @@ public class ControllerLog {
     ViewLog viewLog;
     ModelLog modelLog;
     Service services;
-    Data data;
 
     public ControllerLog(ViewLog viewLog, ModelLog modelLog) {
         this.viewLog = viewLog;
         this.modelLog = modelLog;
         this.services = Service.instance();
-        this.data = Application.getData();
         viewLog.setControllerLog(this);
         viewLog.setModelLog(modelLog);
     }
@@ -119,19 +116,27 @@ public class ControllerLog {
 
 
     private Doctor findDoctorByCredentials(String username, String password) {
-        for (Doctor doctor : data.getDoctors()) {
-            if (doctor.getId().equals(username) && doctor.getPassword().equals(password)) {
-                return doctor;
+        try{
+            for (Doctor doctor : services.doctor().getDoctors()) {
+                if (doctor.getId().equals(username) && doctor.getPassword().equals(password)) {
+                    return doctor;
+                }
             }
+        }catch (Exception e){
+            e.printStackTrace();
         }
         return null;
     }
 
     private Pharmacist findPharmacistByCredentials(String username, String password) {
-        for (Pharmacist pharmacist : data.getPharmacists()) {
-            if (pharmacist.getId().equals(username) && pharmacist.getPassword().equals(password)) {
-                return pharmacist;
+        try{
+            for (Pharmacist pharmacist : services.pharmacist().getPharmacists()) {
+                if (pharmacist.getId().equals(username) && pharmacist.getPassword().equals(password)) {
+                    return pharmacist;
+                }
             }
+        }catch (Exception e){
+            e.printStackTrace();
         }
         return null;
     }
@@ -156,7 +161,7 @@ public class ControllerLog {
                 if (Application.USER_TYPE_DOCTOR.equals(userType)) {
                     Doctor doctor = findDoctorByCredentials(username, password);
                     if (doctor != null) {
-                        data.setCurrentDoctor(doctor);
+                        //data.setCurrentDoctor(doctor);
                         System.out.println("Doctor logged in: " + doctor.getName());
                     }
                 }

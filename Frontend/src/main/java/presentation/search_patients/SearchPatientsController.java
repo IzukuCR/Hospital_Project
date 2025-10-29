@@ -2,7 +2,6 @@ package presentation.search_patients;
 
 import logic.Patient;
 import logic.Service;
-import presentation.search_patients.PatientSelectionListener;
 import presentation.table_models.TableModelPatient;
 
 import javax.swing.*;

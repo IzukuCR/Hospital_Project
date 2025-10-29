@@ -1,7 +1,7 @@
-package main.java.presentation.medicines;
+package presentation.medicines;
 
-import prescription_dispatch.logic.Medicine;
-import prescription_dispatch.presentation.Highlighter;
+import logic.Medicine;
+import presentation.Highlighter;
 
 import javax.swing.*;
 import java.awt.*;
@@ -268,12 +268,12 @@ public class ViewMedicine implements PropertyChangeListener {
     }
     public void initializeMessaging(String userId) {
         this.currentUserId = userId;
-        prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
+        logic.Service.MessagingService.getInstance().userLoggedIn(currentUserId);
     }
 
     public void cleanup() {
         if (currentUserId != null) {
-            prescription_dispatch.logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
+            logic.Service.MessagingService.getInstance().userLoggedOut(currentUserId);
             currentUserId = null;
         }
     }

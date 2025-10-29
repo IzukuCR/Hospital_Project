@@ -1,6 +1,6 @@
+package logic;
+
 import com.formdev.flatlaf.FlatDarculaLaf;
-import logic.ControllerMessaging;
-import logic.Doctor;
 import presentation.InfoWindow;
 import presentation.dashboard.ControllerDashboard;
 import presentation.dashboard.ModelDashboard;
@@ -235,8 +235,8 @@ public class Application {
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
         // AGREGAR PANEL DE USUARIOS ACTIVOS
-        prescription_dispatch.presentation.messaging.ActiveUsersPanel messagingPanel =
-                new prescription_dispatch.presentation.messaging.ActiveUsersPanel(userId);
+       presentation.messaging.ActiveUsersPanel messagingPanel =
+                new presentation.messaging.ActiveUsersPanel(userId);
         mainPanel.add(messagingPanel, BorderLayout.EAST);
 
         currentWindow.setContentPane(mainPanel);
@@ -252,8 +252,9 @@ public class Application {
         Icon prescriptionTabIcon = new ImageIcon(Application.class.getResource("/icons/prescrip1.png"));
         tabbedPane.addTab("Prescription", prescriptionTabIcon, prescriptionView.getPanel());
 
-        Doctor currentDoctor = getData().getCurrentDoctor();
-        prescriptionView.setDoctor(currentDoctor);
+        //Doctor currentDoctor = getData().getCurrentDoctor();
+        prescriptionController.setDoctorSearch(userId);
+
 
         Icon historyTabIcon = new ImageIcon(Application.class.getResource("/icons/history.png"));
         tabbedPane.addTab("History", historyTabIcon, historyView.getPanel());
@@ -269,8 +270,8 @@ public class Application {
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
         // AGREGAR PANEL DE USUARIOS ACTIVOS (como en ViewDoctor)
-        prescription_dispatch.presentation.messaging.ActiveUsersPanel messagingPanel =
-                new prescription_dispatch.presentation.messaging.ActiveUsersPanel(userId);
+        presentation.messaging.ActiveUsersPanel messagingPanel =
+                new presentation.messaging.ActiveUsersPanel(userId);
         mainPanel.add(messagingPanel, BorderLayout.EAST);
 
         currentWindow.setContentPane(mainPanel);
@@ -302,8 +303,8 @@ public class Application {
         mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
         // AGREGAR PANEL DE USUARIOS ACTIVOS
-        prescription_dispatch.presentation.messaging.ActiveUsersPanel messagingPanel =
-                new prescription_dispatch.presentation.messaging.ActiveUsersPanel(userId);
+        presentation.messaging.ActiveUsersPanel messagingPanel =
+                new presentation.messaging.ActiveUsersPanel(userId);
         mainPanel.add(messagingPanel, BorderLayout.EAST);
 
         currentWindow.setContentPane(mainPanel);
@@ -337,10 +338,6 @@ public class Application {
             return true;
         }
         return false;
-    }
-
-    public static Data getData() {
-        return Data.getInstance();
     }
 
 }

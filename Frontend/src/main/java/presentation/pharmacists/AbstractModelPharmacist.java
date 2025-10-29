@@ -1,4 +1,4 @@
-package main.java.presentation.pharmacists;
+package presentation.pharmacists;
 
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
