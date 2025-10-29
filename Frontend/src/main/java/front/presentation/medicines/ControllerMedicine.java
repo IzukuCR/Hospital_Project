@@ -1,12 +1,13 @@
 package front.presentation.medicines;
 
+import front.presentation.ThreadListener;
 import logic.Medicine;
 import front.logic.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ControllerMedicine {
+public class ControllerMedicine implements ThreadListener {
     ViewMedicine view;
     ModelMedicine model;
     Service service;
@@ -133,6 +134,15 @@ public class ControllerMedicine {
             return allMedicines;
         } catch (Exception e) {
             throw new Exception("No medicines on list.. Add some first");
+        }
+    }
+
+    @Override
+    public void refresh() {
+        try {
+            loadMedicines();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
         }
     }
 }

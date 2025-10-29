@@ -1,5 +1,6 @@
 package front.presentation.search_patients;
 
+import front.presentation.ThreadListener;
 import logic.Patient;
 import front.logic.Service;
 import front.presentation.table_models.TableModelPatient;
@@ -9,7 +10,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SearchPatientsController {
+public class SearchPatientsController implements ThreadListener {
 
     private final View view;
     private final SearchPatientsModel model;
@@ -140,6 +141,15 @@ public class SearchPatientsController {
         }catch (Exception e){
             JOptionPane.showMessageDialog(view.getRoot(), "Error to load patients: " + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    @Override
+    public void refresh() {
+        try {
+            loadAll();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
         }
     }
 }

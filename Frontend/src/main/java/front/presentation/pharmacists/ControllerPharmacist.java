@@ -1,11 +1,12 @@
 package front.presentation.pharmacists;
 
+import front.presentation.ThreadListener;
 import logic.Pharmacist;
 import front.logic.Service;
 
 import java.util.List;
 
-public class ControllerPharmacist {
+public class ControllerPharmacist implements ThreadListener {
     ViewPharmacist view;
     ModelPharmacist model;
     Service service;
@@ -96,5 +97,13 @@ public class ControllerPharmacist {
 
         model.setPharmacists(allPharmacists);
         return allPharmacists;
+    }
+    @Override
+    public void refresh() {
+        try {
+            loadPharmacists();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
+        }
     }
 }

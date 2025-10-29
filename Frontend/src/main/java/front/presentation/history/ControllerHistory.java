@@ -1,12 +1,13 @@
 package front.presentation.history;
 
+import front.presentation.ThreadListener;
 import logic.Prescription;
 import front.logic.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ControllerHistory {
+public class ControllerHistory implements ThreadListener {
     ViewHistory view;
     ModelHistory model;
     Service service;
@@ -17,6 +18,14 @@ public class ControllerHistory {
         this.service = Service.instance();
         view.setControllerHistory(this);
         view.setModelHistory(model);
+    }
+
+    public void loadHistory() {
+        try {
+            model.setPrescriptions(service.prescription().getPrescriptions());
+        } catch (Exception e) {
+            System.err.println("Error loading prescriptions: " + e.getMessage());
+        }
     }
 
     public List<Prescription> searchByPatient(String patientIdOrName) throws Exception {
@@ -57,6 +66,15 @@ public class ControllerHistory {
         } catch (Exception e) {
             System.err.println("Error searching prescriptions: " + e.getMessage());
             return new Prescription();
+        }
+    }
+
+    @Override
+    public void refresh() {
+        try {
+            loadHistory();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
         }
     }
 }

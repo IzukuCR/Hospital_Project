@@ -1,12 +1,13 @@
 package front.presentation.prescriptions;
 
 import front.logic.Service;
+import front.presentation.ThreadListener;
 import logic.*;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class ControllerPrescription {
+public class ControllerPrescription implements ThreadListener {
     ViewPrescription view;
     ModelPrescription model;
     Service service;
@@ -178,7 +179,6 @@ public class ControllerPrescription {
 
     }
 
-
     public boolean canEditPrescription(String prescriptionId) {
         Doctor currentDoctor = model.getDoctor();
         Prescription prescription = getPrescription(prescriptionId);
@@ -186,5 +186,14 @@ public class ControllerPrescription {
         return currentDoctor != null &&
                 prescription != null &&
                 prescription.getDoctorId().equals(currentDoctor.getId());
+    }
+
+    @Override
+    public void refresh() {
+        try {
+            loadInformation();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
+        }
     }
 }

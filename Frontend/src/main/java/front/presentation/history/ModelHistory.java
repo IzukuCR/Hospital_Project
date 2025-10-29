@@ -21,6 +21,12 @@ public class ModelHistory {
         support = new PropertyChangeSupport(this);
     }
 
+    public void setPrescriptionList(List<Prescription> prescriptions) {
+        List<Prescription> oldPrescriptions = this.prescriptions;
+        this.prescriptions = new ArrayList<>(prescriptions);
+        support.firePropertyChange(LIST, oldPrescriptions, this.prescriptions);
+    }
+
     public List<Prescription> getPrescriptions() {
         return new ArrayList<>(prescriptions);
     }

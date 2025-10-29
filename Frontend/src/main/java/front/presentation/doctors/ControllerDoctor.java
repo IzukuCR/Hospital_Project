@@ -1,11 +1,12 @@
 package front.presentation.doctors;
 
+import front.presentation.ThreadListener;
 import logic.Doctor;
 import front.logic.Service;
 
 import java.util.List;
 
-public class ControllerDoctor {
+public class ControllerDoctor implements ThreadListener {
     ViewDoctor view;
     ModelDoctor model;
     Service service;
@@ -94,5 +95,14 @@ public class ControllerDoctor {
 
         model.setDoctors(allDoctors);
         return allDoctors;
+    }
+
+    @Override
+    public void refresh() {
+        try {
+            loadDoctors();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
+        }
     }
 }

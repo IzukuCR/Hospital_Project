@@ -1,11 +1,12 @@
 package front.presentation.patients;
 
+import front.presentation.ThreadListener;
 import logic.Patient;
 import front.logic.Service;
 
 import java.util.List;
 
-public class ControllerPatient {
+public class ControllerPatient implements ThreadListener {
     ViewPatient view;
     ModelPatient model;
     Service service;
@@ -82,5 +83,13 @@ public class ControllerPatient {
 
         model.setPatients(allPatients);
         return allPatients;
+    }
+    @Override
+    public void refresh() {
+        try {
+            loadPatients();
+        } catch (Exception e) {
+            System.err.println("Dashboard refresh error: " + e.getMessage());
+        }
     }
 }
