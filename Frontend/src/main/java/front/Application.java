@@ -168,6 +168,8 @@ public class Application {
         historyView.setModelHistory(historyModel);
 
         dashboardController = new ControllerDashboard(dashboardView, dashboardModel);
+        dashboardView.setControllerDashboard(dashboardController);
+        dashboardView.setModelDashboard(dashboardModel);
 
         System.out.println("All components initialized successfully");
     }

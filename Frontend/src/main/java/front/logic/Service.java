@@ -43,10 +43,21 @@ public class Service {
         logService = new LogService();
 
         try {
+            System.out.println(" Attempting to connect to " + Protocol.SERVER + ":" + Protocol.PORT);
             s = new Socket(Protocol.SERVER, Protocol.PORT);
+            System.out.println(" Socket connected successfully");
+
             os = new ObjectOutputStream(s.getOutputStream());
+            os.flush();
+            System.out.println(" ObjectOutputStream created");
+
             is = new ObjectInputStream(s.getInputStream());
+            System.out.println(" ObjectInputStream created");
+
+            System.out.println(" Connection established completely");
         } catch (Exception e) {
+            System.err.println(" Connection failed: " + e.getMessage());
+            e.printStackTrace();
             System.exit(-1);
         }
     }
@@ -404,8 +415,12 @@ public class Service {
 
         public List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
             os.writeInt(Protocol.PRESCRIPTION_BY_DATE);
-            os.writeObject(date == null ? null : date.toString());
-            os.writeObject(patientId);
+
+            Object[] params = new Object[2];
+            params[0] = date;
+            params[1] = patientId;
+            os.writeObject(params);
+
             os.flush();
             if (is.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) is.readObject();
             else throw new Exception();

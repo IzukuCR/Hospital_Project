@@ -155,13 +155,26 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
     }
 
     public void loadMedicinesList() {
-        medicinesComboBox.removeAllItems();
+        try {
+            medicinesComboBox.removeAllItems();
 
-        List<Medicine> medicines = controller.getAllMedicines();
-        if (medicines != null) {
+            List<Medicine> medicines = controller.getAllMedicines();
+
+            if (medicines == null || medicines.isEmpty()) {
+                System.err.println(" No medicines found in database");
+                medicinesComboBox.addItem("No medicines available");
+                return;
+            }
+
+            System.out.println(" Loaded " + medicines.size() + " medicines");
             for (Medicine medicine : medicines) {
                 medicinesComboBox.addItem(medicine.getName());
+                System.out.println("  - Added: " + medicine.getName());
             }
+        } catch (Exception e) {
+            System.err.println(" Error loading medicines: " + e.getMessage());
+            e.printStackTrace();
+            medicinesComboBox.addItem("Error loading medicines");
         }
     }
 
@@ -202,6 +215,7 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
 
     public void setControllerDashboard(ControllerDashboard controller) {
         this.controller = controller;
+        loadMedicinesList();
     }
 
     public void setModelDashboard(AbstractModelDashboard model) {

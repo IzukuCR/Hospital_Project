@@ -20,8 +20,12 @@ public class Worker {
         try {
             this.srv = srv;
             this.s = s;
+
             os = new ObjectOutputStream(s.getOutputStream());
+            os.flush();
+
             is = new ObjectInputStream(s.getInputStream());
+
             this.service = service;
         } catch (IOException ex) {
             System.out.println(ex);
