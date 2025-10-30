@@ -3,6 +3,8 @@ package logic;
 public class Protocol {
     public static final String SERVER = "localhost";
     public static final int PORT = 1234;
+    public static final int SYNC = 9090;
+    public static final int ASYNC = 8080;
     public static final int OK = 0;
     public static final int ERROR = -1;
 

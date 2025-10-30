@@ -133,8 +133,8 @@ public class ViewHistory implements PropertyChangeListener {
     }
 
     private void handleListAll() {
-        List<Prescription> allPrescriptions = modelHistory.getPrescriptions();
-        historyTableModel.setRows(allPrescriptions);
+
+        historyTableModel.setRows(modelHistory.getPrescriptions());
     }
 
     private void displayPrescriptionDetails(Prescription prescription) {

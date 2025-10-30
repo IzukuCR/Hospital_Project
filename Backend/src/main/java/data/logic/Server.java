@@ -1,6 +1,6 @@
 package data.logic;
 
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -30,23 +30,52 @@ public class Server {
             return;
         }
 
-        boolean continuar = true;
-        while (continuar) {
+        boolean continueRunning = true;
+        while (continueRunning) {
             try {
-                Socket s = ss.accept();
-                System.out.println("Connection made...");
-                Worker worker = new Worker(this, s, Service.instance());
+                // Accept synchronous connection (SYNC)
+                Socket syncSocket = ss.accept();
+                System.out.println("SYNC Connection made...");
+
+                // Create input/output streams for the sync socket
+                ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
+                ObjectOutputStream syncOs = new ObjectOutputStream(syncSocket.getOutputStream());
+
+                // Read the session ID from the sync socket
+                String sessionId = (String) syncIs.readObject();  // Read session ID
+
+                // Create the worker for the synchronous connection
+                Worker worker = new Worker(this, syncSocket, syncOs, syncIs, Service.instance());
+
+                // Set the session ID in the worker
+                worker.setSessionId(sessionId);  // Set the session ID in the worker
+
+                // Accept asynchronous connection (ASYNC)
+                Socket asyncSocket = ss.accept();
+                System.out.println("ASYNC Connection made...");
+
+                // Create separate input/output streams for the async socket
+                ObjectInputStream asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
+                ObjectOutputStream asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
+
+                // Set the async socket in the worker
+                worker.setAsyncSocket(asyncSocket, asyncOs, asyncIs); // Set async socket and streams
+
+                // Add the worker to the list of workers
                 workers.add(worker);
-                System.out.println("Remaining: " + workers.size());
+                System.out.println("Remaining workers: " + workers.size());
+
+                // Start the worker to handle the connections
                 worker.start();
-            } catch (IOException ex) {
-                System.err.println("I/O error accepting connection: " + ex.getMessage());
+
+                // Send the session ID back to the client via the sync socket
+                syncOs.writeObject(worker.getSessionId());  // Send session ID back
+                syncOs.flush();
+
+            } catch (IOException | ClassNotFoundException ex) {
+                System.err.println("Error: " + ex.getMessage());
                 ex.printStackTrace();
-                // Likely ss closed or network issue -> stop accepting
-                continuar = false;
-            } catch (Exception ex) {
-                System.err.println("Unexpected error accepting connection:");
-                ex.printStackTrace();
+                continueRunning = false;
             }
         }
     }

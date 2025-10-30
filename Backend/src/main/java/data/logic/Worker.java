@@ -2,6 +2,7 @@ package data.logic;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.LocalDate;
@@ -16,20 +17,32 @@ public class Worker {
     ObjectOutputStream os;
     ObjectInputStream is;
 
-    public Worker(Server srv, Socket s, Service service) {
-        try {
-            this.srv = srv;
-            this.s = s;
+    String sid;
+    Socket ssession;
+    ObjectOutputStream oos;
+    ObjectInputStream ois;
 
-            os = new ObjectOutputStream(s.getOutputStream());
-            os.flush();
+    public Worker(Server srv, Socket s, ObjectOutputStream oa, ObjectInputStream ia, Service service) {
+        this.srv = srv;
+        this.s = s;
+        this.os = oa;
+        this.is = ia;
+        this.service = service;
+    }
 
-            is = new ObjectInputStream(s.getInputStream());
+    public void setAsyncSocket(Socket s, ObjectOutputStream oos, ObjectInputStream ois) {
 
-            this.service = service;
-        } catch (IOException ex) {
-            System.out.println(ex);
-        }
+        this.ssession = s;
+        this.oos = oos;
+        this.ois = ois;
+    }
+
+    public void setSessionId(String sid) {
+        this.sid = sid;
+    }
+
+    public String getSessionId() {
+        return sid;
     }
 
     boolean running;
