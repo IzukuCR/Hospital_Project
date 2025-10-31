@@ -148,51 +148,83 @@ public class ControllerLog {
                 return;
             }
 
+            Service service = Service.instance();
+
+            // 🔹 Paso 1: Conectarse al servidor si aún no hay conexión activa
+            try {
+                if (service.getSyncSocket() == null || service.getSyncSocket().isClosed()) {
+                    System.out.println("🔌 Connecting before login validation...");
+                    service.connect();
+                    System.out.println("Connection established before user validation");
+                }
+            } catch (Exception ex) {
+                viewLog.showError("Cannot connect to server: " + ex.getMessage());
+                return;
+            }
+
+            // 🔹 Paso 2: Validar credenciales de administrador
             if (Application.isAdminCredentials(username, password)) {
                 JOptionPane.showMessageDialog(viewLog, "Successful login as Administrator. Accessing System...");
+                try {
+                    service.connectAfterLogin(username); // establecer sessionID real
+                } catch (Exception e) {
+                    System.err.println("Error linking admin session: " + e.getMessage());
+                }
                 Application.showUserWindow(Application.USER_TYPE_ADMIN, username);
                 viewLog.disposeView();
                 return;
             }
 
-            // Try to validate as doctor first
+            // 🔹 Paso 3: Validar como doctor
             try {
                 Doctor doctor = new Doctor();
                 doctor.setId(username);
                 doctor.setPassword(password);
-                Doctor validatedDoctor = services.doctor().validateLogin(doctor);
+                Doctor validatedDoctor = service.doctor().validateLogin(doctor);
 
                 if (validatedDoctor != null) {
                     JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                    try {
+                        service.connectAfterLogin(username); // establecer sessionID del doctor
+                    } catch (Exception e) {
+                        System.err.println("Error linking doctor session: " + e.getMessage());
+                    }
                     Application.showUserWindow(Application.USER_TYPE_DOCTOR, username);
                     viewLog.disposeView();
                     return;
                 }
             } catch (Exception e) {
-                // Continue to pharmacist validation
+                System.err.println("Doctor validation failed: " + e.getMessage());
             }
 
-            // Try to validate as pharmacist
+            // 🔹 Paso 4: Validar como farmacéutico
             try {
                 Pharmacist pharmacist = new Pharmacist();
                 pharmacist.setId(username);
                 pharmacist.setPassword(password);
-                Pharmacist validatedPharmacist = services.pharmacist().validateLogin(pharmacist);
+                Pharmacist validatedPharmacist = service.pharmacist().validateLogin(pharmacist);
 
                 if (validatedPharmacist != null) {
                     JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                    try {
+                        service.connectAfterLogin(username); // establecer sessionID del farmacéutico
+                    } catch (Exception e) {
+                        System.err.println("Error linking pharmacist session: " + e.getMessage());
+                    }
                     Application.showUserWindow(Application.USER_TYPE_PHARMACIST, username);
                     viewLog.disposeView();
                     return;
                 }
             } catch (Exception e) {
-                // Login failed
+                System.err.println("Pharmacist validation failed: " + e.getMessage());
             }
 
+            // 🔹 Paso 5: Ninguna validación exitosa
             viewLog.showError("Invalid username or password");
 
         } catch (Exception e) {
             viewLog.showError("System error: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

@@ -18,7 +18,7 @@ public class ControllerMedicine implements ThreadListener {
         this.model = model;
         this.service = Service.instance();
 
-        loadMedicines();
+        //loadMedicines();
         view.setControllerMed(this);
         view.setModelMed(model);
     }

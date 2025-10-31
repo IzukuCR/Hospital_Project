@@ -15,7 +15,7 @@ public class ControllerPharmacist implements ThreadListener {
         this.view = view;
         this.model = model;
         this.service = Service.instance();
-        loadPharmacists();
+        //loadPharmacists();
         view.setControllerPharm(this);
         view.setModelPharm(model);
     }

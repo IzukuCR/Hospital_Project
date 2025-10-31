@@ -37,7 +37,7 @@ public class SearchPatientsController implements ThreadListener {
         }
         this.view.setTableModel(tableModel);
 
-        loadAll();
+        //loadAll();
     }
 
     private void loadAll() {

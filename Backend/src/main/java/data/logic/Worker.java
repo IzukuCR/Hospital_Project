@@ -2,7 +2,6 @@ package data.logic;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.LocalDate;
@@ -10,64 +9,112 @@ import java.util.List;
 
 import logic.*;
 
-public class Worker {
-    Server srv;
-    Socket s;
-    Service service;
-    ObjectOutputStream os;
-    ObjectInputStream is;
+public class Worker extends Thread {
 
-    String sid;
-    Socket ssession;
-    ObjectOutputStream oos;
-    ObjectInputStream ois;
+    private final Server server;
+    private String sessionId;
+    private final Socket syncSocket, asyncSocket;
+    private final ObjectOutputStream syncOs, asyncOs;
+    private final ObjectInputStream syncIs, asyncIs;
+    private volatile boolean running = true;
+    private Service service = Service.instance();
 
-    public Worker(Server srv, Socket s, ObjectOutputStream oa, ObjectInputStream ia, Service service) {
-        this.srv = srv;
-        this.s = s;
-        this.os = oa;
-        this.is = ia;
-        this.service = service;
+    public Worker(Server server, String sessionId,
+                  Socket syncSocket, ObjectOutputStream syncOs, ObjectInputStream syncIs,
+                  Socket asyncSocket, ObjectOutputStream asyncOs, ObjectInputStream asyncIs) {
+        this.server = server;
+        this.sessionId = sessionId;
+        this.syncSocket = syncSocket;
+        this.syncOs = syncOs;
+        this.syncIs = syncIs;
+        this.asyncSocket = asyncSocket;
+        this.asyncOs = asyncOs;
+        this.asyncIs = asyncIs;
     }
 
-    public void setAsyncSocket(Socket s, ObjectOutputStream oos, ObjectInputStream ois) {
-
-        this.ssession = s;
-        this.oos = oos;
-        this.ois = ois;
+    @Override
+    public void run() {
+        System.out.println("Worker started for session: " + sessionId);
+        Thread asyncThread = new Thread(this::listenAsync);
+        asyncThread.start();
+        listenSync();
     }
 
-    public void setSessionId(String sid) {
-        this.sid = sid;
-    }
-
-    public String getSessionId() {
-        return sid;
-    }
-
-    boolean running;
-
-    public void start() {
+    private void listenSync() {
         try {
-            System.out.println("Worker is now listening for requests...");
-            Thread t = new Thread(this::listen);
-            running = true;
-            t.start();
-        } catch (Exception ex) {
-            System.out.println(ex);
+            while (running) {
+                int op = syncIs.readInt();
+                System.out.println("SYNC op: " + op);
+
+                if (op == Protocol.DISCONNECT) {
+                    stopWorker();
+                    break;
+                } else if (op == Protocol.USER_VALIDATE) {
+                    String[] creds = (String[]) syncIs.readObject();
+                    System.out.println("Login from: " + creds[0]);
+                    syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                    syncOs.writeObject("OK");
+                } else {
+                    syncOs.writeInt(Protocol.ERROR_UNKNOWN_METHOD);
+                }
+                syncOs.flush();
+            }
+        } catch (Exception e) {
+            System.err.println("SYNC error (" + sessionId + "): " + e.getMessage());
+        } finally {
+            stopWorker();
         }
     }
 
-    public void stop() {
+    private void listenAsync() {
+        try {
+            while (running) {
+                Object obj = asyncIs.readObject();
+                if (obj instanceof Message msg) {
+                    System.out.println("ASYNC message from " + msg.getSender() + " to " + msg.getReceiver());
+                    server.sendMessage(msg);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Async stream closed for " + sessionId);
+        }
+    }
+
+    public void sendAsync(Message msg) {
+        try {
+            asyncOs.writeObject(msg);
+            asyncOs.flush();
+            System.out.println("Sent async message to " + msg.getReceiver());
+        } catch (IOException e) {
+            System.err.println("Error sending message to " + msg.getReceiver() + ": " + e.getMessage());
+        }
+    }
+
+    public void stopWorker() {
         running = false;
-        System.out.println("Connection closed.");
+        server.remove(sessionId);
+        try { if (syncOs != null) syncOs.close(); } catch (IOException ignored) {}
+        try { if (syncIs != null) syncIs.close(); } catch (IOException ignored) {}
+        try { if (asyncOs != null) asyncOs.close(); } catch (IOException ignored) {}
+        try { if (asyncIs != null) asyncIs.close(); } catch (IOException ignored) {}
+        try { if (syncSocket != null) syncSocket.close(); } catch (IOException ignored) {}
+        try { if (asyncSocket != null) asyncSocket.close(); } catch (IOException ignored) {}
+        System.out.println("Worker stopped: " + sessionId);
+    }
+
+    private void writeCaseError(Exception ex) {
+        try {
+            syncOs.writeInt(Protocol.ERROR_ERROR);
+            syncOs.writeObject("Error: " + ex.getMessage());
+            syncOs.flush();
+        } catch (IOException ignored) {}
     }
 
     public void listen() {
         int method;
         while (running) {
             try {
-                method = is.readInt();
+                method = syncIs.readInt();
                 System.out.println("Operation: " + method);
 
                 switch (method) {
@@ -75,350 +122,366 @@ public class Worker {
                     // -------------------- DOCTOR --------------------
                     case Protocol.DOCTOR_CREATE:
                         try {
-                            Doctor d = (Doctor) is.readObject();
+                            Doctor d = (Doctor) syncIs.readObject();
                             Doctor created = service.doctor().create(d);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(created);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(created);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_READ_BY_ID:
                         try {
-                            String id = (String) is.readObject();
+                            String id = (String) syncIs.readObject();
                             Doctor doc = service.doctor().searchByID(id);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(doc);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(doc);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_UPDATE:
                         try {
-                            Doctor d = (Doctor) is.readObject();
+                            Doctor d = (Doctor) syncIs.readObject();
                             Doctor updated = service.doctor().update(d);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(updated);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(updated);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_DELETE:
                         try {
-                            Doctor d = (Doctor) is.readObject();
+                            Doctor d = (Doctor) syncIs.readObject();
                             boolean ok = service.doctor().delete(d);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ok);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ok);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_SEARCH_BY_NAME:
                         try {
-                            String name = (String) is.readObject();
+                            String name = (String) syncIs.readObject();
                             List<Doctor> list = service.doctor().searchByName(name);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_GET_ALL:
+                        System.out.println("Handling request: " + method);
                         try {
                             List<Doctor> list = service.doctor().getDoctors();
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.DOCTOR_VALIDATE_LOGIN:
                         try {
-                            Doctor d = (Doctor) is.readObject();
+                            Doctor d = (Doctor) syncIs.readObject();
                             Doctor result = service.doctor().validateLogin(d);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(result);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(result);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
 
                     // -------------------- PHARMACIST --------------------
                     case Protocol.PHARMACIST_CREATE:
                         try {
-                            Pharmacist ph = (Pharmacist) is.readObject();
+                            Pharmacist ph = (Pharmacist) syncIs.readObject();
                             Pharmacist created = service.pharmacist().create(ph);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(created);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(created);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_READ_BY_ID:
                         try {
-                            String id = (String) is.readObject();
+                            String id = (String) syncIs.readObject();
                             Pharmacist ph = service.pharmacist().readById(id);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ph);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ph);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_UPDATE:
                         try {
-                            Pharmacist ph = (Pharmacist) is.readObject();
+                            Pharmacist ph = (Pharmacist) syncIs.readObject();
                             Pharmacist updated = service.pharmacist().update(ph);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(updated);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(updated);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_DELETE:
                         try {
-                            Pharmacist ph = (Pharmacist) is.readObject();
+                            Pharmacist ph = (Pharmacist) syncIs.readObject();
                             boolean ok = service.pharmacist().delete(ph);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ok);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ok);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_SEARCH_BY_NAME:
                         try {
-                            String name = (String) is.readObject();
+                            String name = (String) syncIs.readObject();
                             List<Pharmacist> list = service.pharmacist().searchByName(name);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_GET_ALL:
+                        System.out.println("Handling request: " + method);
                         try {
                             List<Pharmacist> list = service.pharmacist().getPharmacists();
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PHARMACIST_VALIDATE_LOGIN:
                         try {
-                            Pharmacist ph = (Pharmacist) is.readObject();
+                            Pharmacist ph = (Pharmacist) syncIs.readObject();
                             Pharmacist result = service.pharmacist().validateLogin(ph);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(result);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(result);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
 
                     // -------------------- PATIENT --------------------
                     case Protocol.PATIENT_CREATE:
                         try {
-                            Patient p = (Patient) is.readObject();
+                            Patient p = (Patient) syncIs.readObject();
                             Patient created = service.patient().create(p);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(created);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(created);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PATIENT_READ_BY_ID:
                         try {
-                            String id = (String) is.readObject();
+                            String id = (String) syncIs.readObject();
                             Patient p = service.patient().readById(id);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(p);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(p);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PATIENT_UPDATE:
                         try {
-                            Patient p = (Patient) is.readObject();
+                            Patient p = (Patient) syncIs.readObject();
                             Patient updated = service.patient().update(p);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(updated);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(updated);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PATIENT_DELETE:
                         try {
-                            Patient p = (Patient) is.readObject();
+                            Patient p = (Patient) syncIs.readObject();
                             boolean ok = service.patient().delete(p);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ok);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ok);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PATIENT_SEARCH_BY_NAME:
                         try {
-                            String name = (String) is.readObject();
+                            String name = (String) syncIs.readObject();
                             List<Patient> list = service.patient().searchByName(name);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PATIENT_GET_ALL:
+                        System.out.println("Handling request: " + method);
                         try {
                             List<Patient> list = service.patient().getPatients();
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
 
                     // -------------------- MEDICINE --------------------
                     case Protocol.MEDICINE_CREATE:
                         try {
-                            Medicine m = (Medicine) is.readObject();
+                            Medicine m = (Medicine) syncIs.readObject();
                             Medicine created = service.medicine().create(m);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(created);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(created);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.MEDICINE_READ_BY_CODE:
                         try {
-                            String code = (String) is.readObject();
+                            String code = (String) syncIs.readObject();
                             Medicine m = service.medicine().readByCode(code);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(m);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(m);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.MEDICINE_UPDATE:
                         try {
-                            Medicine m = (Medicine) is.readObject();
+                            Medicine m = (Medicine) syncIs.readObject();
                             Medicine updated = service.medicine().update(m);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(updated);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(updated);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.MEDICINE_DELETE:
                         try {
-                            String code = (String) is.readObject();
+                            String code = (String) syncIs.readObject();
                             boolean ok = service.medicine().delete(code);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ok);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ok);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.MEDICINE_GET_ALL:
+                        System.out.println("Handling request: " + method);
                         try {
                             List<Medicine> list = service.medicine().getMedicines();
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.MEDICINE_SEARCH_BY_NAME:
                         try {
-                            String name = (String) is.readObject();
+                            String name = (String) syncIs.readObject();
                             List<Medicine> list = service.medicine().searchByName(name);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
 
                     // -------------------- PRESCRIPTION --------------------
                     case Protocol.PRESCRIPTION_CREATE:
                         try {
-                            Prescription pr = (Prescription) is.readObject();
+                            Prescription pr = (Prescription) syncIs.readObject();
                             Prescription created = service.prescription().create(pr);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(created);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(created);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_READ_BY_ID:
                         try {
-                            String id = (String) is.readObject();
+                            String id = (String) syncIs.readObject();
                             Prescription pr = service.prescription().readById(id);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(pr);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(pr);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_UPDATE:
                         try {
-                            Prescription pr = (Prescription) is.readObject();
+                            Prescription pr = (Prescription) syncIs.readObject();
                             Prescription updated = service.prescription().update(pr);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(updated);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(updated);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_DELETE:
                         try {
-                            String id = (String) is.readObject();
+                            String id = (String) syncIs.readObject();
                             boolean ok = service.prescription().delete(id);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(ok);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(ok);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_GET_ALL:
+                        System.out.println("Handling request: " + method);
                         try {
                             List<Prescription> list = service.prescription().getPrescriptions();
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_BY_PATIENT_ID:
                         try {
-                            String patientId = (String) is.readObject();
+                            String patientId = (String) syncIs.readObject();
                             List<Prescription> list = service.prescription().getPrescriptionsByPatientID(patientId);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_BY_PATIENT_NAME:
                         try {
-                            String name = (String) is.readObject();
+                            String name = (String) syncIs.readObject();
                             List<Prescription> list = service.prescription().getPrescriptionsByPatientName(name);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_BY_DOCTOR:
                         try {
-                            String doctorId = (String) is.readObject();
+                            String doctorId = (String) syncIs.readObject();
                             List<Prescription> list = service.prescription().getPrescriptionsByDoctor(doctorId);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     case Protocol.PRESCRIPTION_BY_DATE:
                         try {
-                            Object[] params = (Object[]) is.readObject();
+                            Object[] params = (Object[]) syncIs.readObject();
                             LocalDate date = (LocalDate) params[0];
                             String patientId = (String) params[1];
                             List<Prescription> list = service.prescription().getPrescriptionsByDate(date, patientId);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(list);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
-                        break;
-
-
-                    // -------------------- LOGIN --------------------
-                    case Protocol.USER_VALIDATE:
-                        try {
-                            String[] creds = (String[]) is.readObject();
-                            String userType = service.log().validateUserType(creds[0], creds[1]);
-                            os.writeInt(Protocol.ERROR_NO_ERROR);
-                            os.writeObject(userType);
-                        } catch (Exception ex) { os.writeInt(Protocol.ERROR_ERROR); }
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(list);
+                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
                         break;
 
                     // -------------------- DISCONNECT --------------------
                     case Protocol.DISCONNECT:
-                        stop();
-                        srv.remove(this);
+                        stopWorker();
+                        server.remove(sessionId);
+                        break;
+
+                    case Protocol.USER_VALIDATE:
+                        try {
+                            String[] creds = (String[]) syncIs.readObject();
+                            String userType = service.log().validateUserType(creds[0], creds[1]);
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject(userType);
+
+                            // Actualiza el sessionId con el usuario logueado
+                            if (userType != null) {
+                                this.sessionId = creds[0];
+                                Server.getActiveUsers().put(this.sessionId, this);
+                                System.out.println("Session updated for user: " + this.sessionId);
+                            }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                        }
                         break;
 
                     default:
-                        os.writeInt(Protocol.ERROR_UNKNOWN_METHOD);
+                        syncOs.writeInt(Protocol.ERROR_UNKNOWN_METHOD);
                         break;
                 }
 
-                os.flush();
+                syncOs.flush();
 
             } catch (IOException e) {
-                stop();
+                System.err.println("I/O error in worker " + sessionId + ": " + e.getMessage());
+                stopWorker();
+            } catch (Exception e) {
+                System.err.println("Unexpected error in worker " + sessionId + ": " + e.getMessage());
+                stopWorker();
             }
         }
     }

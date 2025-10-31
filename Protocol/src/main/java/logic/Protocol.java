@@ -2,7 +2,8 @@ package logic;
 
 public class Protocol {
     public static final String SERVER = "localhost";
-    public static final int PORT = 1234;
+    public static final int PORT_SYNC = 1234;
+    public static final int PORT_ASYNC = 1235;
     public static final int SYNC = 9090;
     public static final int ASYNC = 8080;
     public static final int OK = 0;
@@ -55,10 +56,15 @@ public class Protocol {
 
     // --- LOGIN ---
     public static final int USER_VALIDATE = 601;
+    public static final int DISCONNECT = 999;
 
     // --- ERRORS & CONNECTIONS ---
     public static final int ERROR_NO_ERROR = 0;
     public static final int ERROR_ERROR = 1;
-    public static final int DISCONNECT = 99;
-    public static final int ERROR_UNKNOWN_METHOD = -1;
+    public static final int ERROR_UNKNOWN_METHOD = 99;
+
+    // --- MESAGES ---
+    public static final int DELIVER_MESSAGE = 11111;
+    public  static final int RECEIVE_MESSAGE = 22222;
+    public static final int DELIVER_MESSAGE3 = 33333;
 }

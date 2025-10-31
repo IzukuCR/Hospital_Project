@@ -15,7 +15,7 @@ public class ControllerPatient implements ThreadListener {
         this.view = view;
         this.model = model;
         this.service = Service.instance();
-        loadPatients();
+        //loadPatients();
         view.setControllerPat(this);
         view.setModelPat(model);
     }

@@ -1,87 +1,73 @@
 package data.logic;
 
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.net.*;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
-import logic.Protocol;
+import logic.*;
 
 public class Server {
-    private ServerSocket ss;
-    private List<Worker> workers;
+
+    private ServerSocket syncServer;
+    private ServerSocket asyncServer;
+    private static final Map<String, Worker> activeUsers = new ConcurrentHashMap<>();
 
     public Server() {
         try {
-            ss = new ServerSocket(Protocol.PORT);
-            workers = Collections.synchronizedList(new ArrayList<Worker>());
-            System.out.println("Server started on port " + Protocol.PORT + "...");
-        } catch (IOException ex) {
-            System.err.println("Failed to start server socket on port " + Protocol.PORT + ": " + ex);
-            throw new IllegalStateException("Cannot start server", ex);
+            syncServer = new ServerSocket(Protocol.PORT_SYNC);
+            asyncServer = new ServerSocket(Protocol.PORT_ASYNC);
+            System.out.println("Server running on ports: SYNC=" + Protocol.PORT_SYNC + ", ASYNC=" + Protocol.PORT_ASYNC);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to start server sockets: " + e.getMessage());
         }
     }
 
     public void run() {
-        if (ss == null) {
-            System.err.println("Server socket is null, aborting run.");
-            return;
-        }
-
-        boolean continueRunning = true;
-        while (continueRunning) {
+        while (true) {
             try {
-                // Accept synchronous connection (SYNC)
-                Socket syncSocket = ss.accept();
-                System.out.println("SYNC Connection made...");
-
-                // Create input/output streams for the sync socket
-                ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
+                System.out.println("\nWaiting SYNC connection...");
+                Socket syncSocket = syncServer.accept();
                 ObjectOutputStream syncOs = new ObjectOutputStream(syncSocket.getOutputStream());
+                syncOs.flush();
+                ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
 
-                // Read the session ID from the sync socket
-                String sessionId = (String) syncIs.readObject();  // Read session ID
+                String sessionId = (String) syncIs.readObject();
+                if (sessionId == null || sessionId.isEmpty()) sessionId = UUID.randomUUID().toString();
 
-                // Create the worker for the synchronous connection
-                Worker worker = new Worker(this, syncSocket, syncOs, syncIs, Service.instance());
-
-                // Set the session ID in the worker
-                worker.setSessionId(sessionId);  // Set the session ID in the worker
-
-                // Accept asynchronous connection (ASYNC)
-                Socket asyncSocket = ss.accept();
-                System.out.println("ASYNC Connection made...");
-
-                // Create separate input/output streams for the async socket
-                ObjectInputStream asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
-                ObjectOutputStream asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
-
-                // Set the async socket in the worker
-                worker.setAsyncSocket(asyncSocket, asyncOs, asyncIs); // Set async socket and streams
-
-                // Add the worker to the list of workers
-                workers.add(worker);
-                System.out.println("Remaining workers: " + workers.size());
-
-                // Start the worker to handle the connections
-                worker.start();
-
-                // Send the session ID back to the client via the sync socket
-                syncOs.writeObject(worker.getSessionId());  // Send session ID back
+                syncOs.writeObject(sessionId);
                 syncOs.flush();
 
-            } catch (IOException | ClassNotFoundException ex) {
-                System.err.println("Error: " + ex.getMessage());
-                ex.printStackTrace();
-                continueRunning = false;
+                System.out.println("Waiting ASYNC connection for " + sessionId + "...");
+                Socket asyncSocket = asyncServer.accept();
+                ObjectOutputStream asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
+                asyncOs.flush();
+                ObjectInputStream asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
+
+                Worker worker = new Worker(this, sessionId, syncSocket, syncOs, syncIs, asyncSocket, asyncOs, asyncIs);
+                activeUsers.put(sessionId, worker);
+                worker.start();
+
+                System.out.println("Connected: " + sessionId + " (Active users: " + activeUsers.size() + ")");
+            } catch (Exception e) {
+                System.err.println("Server error: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
 
-    public void remove(Worker w) {
-        workers.remove(w);
-        System.out.println("Remaining: " + workers.size());
+    public void remove(String sessionId) {
+        activeUsers.remove(sessionId);
+        System.out.println("Disconnected: " + sessionId + " (Remaining: " + activeUsers.size() + ")");
+    }
+
+    public void sendMessage(Message msg) {
+        Worker receiver = activeUsers.get(msg.getReceiver());
+        if (receiver != null) receiver.sendAsync(msg);
+        else System.out.println("Receiver not connected: " + msg.getReceiver());
+    }
+
+    public static Map<String, Worker> getActiveUsers() {
+        return activeUsers;
     }
 }

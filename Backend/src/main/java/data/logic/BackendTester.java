@@ -11,7 +11,7 @@ import java.util.List;
 
 public class BackendTester {
     private static final String HOST = "localhost";
-    private static final int PORT = Protocol.PORT;
+    private static final int PORT = Protocol.PORT_SYNC;
 
     public static void main(String[] args) {
         try (Socket socket = new Socket(HOST, PORT);

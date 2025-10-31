@@ -20,7 +20,7 @@ public class ControllerPrescription implements ThreadListener {
         view.setController(this);
         view.setModel(model);
 
-        loadInformation();
+        //loadInformation();
     }
 
     public void loadInformation(){

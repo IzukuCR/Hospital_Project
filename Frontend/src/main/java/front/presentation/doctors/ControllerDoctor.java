@@ -15,7 +15,7 @@ public class ControllerDoctor implements ThreadListener {
         this.view = view;
         this.model = model;
         this.service = Service.instance();
-        loadDoctors();
+        //loadDoctors();
         view.setControllerDoc(this);
         view.setModelDoc(model);
     }

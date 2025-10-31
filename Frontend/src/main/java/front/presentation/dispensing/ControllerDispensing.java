@@ -27,8 +27,8 @@ public class ControllerDispensing implements ThreadListener {
         this.service = Service.instance();
         this.view.setController(this);
         this.view.setModel(this.model);
-        loadPrescriptions();
-        loadPatients();
+        //loadPrescriptions();
+        //loadPatients();
 
         refresher = new Refresher(this);
         refresher.start();
