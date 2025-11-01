@@ -1,85 +1,92 @@
-// java
 package data.logic;
 
 import logic.Protocol;
-
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OptionalDataException;
+import java.io.*;
 import java.net.Socket;
 import java.util.List;
+import java.util.UUID;
 
 public class BackendTester {
-    private static final String HOST = "localhost";
-    private static final int PORT = Protocol.PORT_SYNC;
 
     public static void main(String[] args) {
-        try (Socket socket = new Socket(HOST, PORT);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+        String sessionId = "tester-session-" + UUID.randomUUID();
 
-            out.flush();
-            System.out.println("Connected to server successfully");
-
-            // Test each list via server
-            testList(out, in, Protocol.MEDICINE_GET_ALL, "Medicines");
-            testList(out, in, Protocol.PATIENT_GET_ALL, "Patients");
-            testList(out, in, Protocol.PRESCRIPTION_GET_ALL, "Prescriptions");
-
-            System.out.println("\nClosing connection...");
-            System.out.println("Test completed");
-
-        } catch (Exception e) {
-            System.err.println("Critical error: " + e);
-            e.printStackTrace();
-        }
-    }
-
-    private static void testList(ObjectOutputStream out, ObjectInputStream in, int requestCode, String label) {
         try {
-            System.out.println("\nTesting " + label + " list...");
-            System.out.println("Sending request code: " + requestCode);
-            out.writeInt(requestCode);
-            out.flush();
-            System.out.println("Request sent, waiting for response...");
+            System.out.println("=== BACKEND TESTER ===");
 
-            int status = in.readInt();
-            System.out.println("Received status code: " + status);
+            // --- 1) Conexión SÍNCRONA ---
+            Socket syncSocket = new Socket(Protocol.SERVER, Protocol.PORT_SYNC);
+            ObjectOutputStream syncOs = new ObjectOutputStream(syncSocket.getOutputStream());
+            syncOs.flush();
+            ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
 
-            if (status == Protocol.OK) {
-                try {
-                    Object response = in.readObject();
-                    System.out.println("Response received. Type: " +
-                            (response != null ? response.getClass().getName() : "null"));
+            // --- 2) Enviar SessionID ---
+            syncOs.writeObject(sessionId);
+            syncOs.flush();
+            String serverSession = (String) syncIs.readObject();
+            System.out.println("[SYNC] Conectado con SessionID: " + serverSession);
 
-                    if (response instanceof List<?>) {
-                        List<?> list = (List<?>) response;
-                        System.out.println(label + " list size: " + list.size());
+            // --- 3) Conexión ASÍNCRONA ---
+            Socket asyncSocket = new Socket(Protocol.SERVER, Protocol.PORT_ASYNC);
+            ObjectOutputStream asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
+            asyncOs.flush();
+            ObjectInputStream asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
+            System.out.println("[ASYNC] Conexión asíncrona establecida correctamente.");
+
+            // --- 4) Solicitudes GET_ALL ---
+            int[] requests = {
+                    Protocol.DOCTOR_GET_ALL,
+                    Protocol.PHARMACIST_GET_ALL,
+                    Protocol.PATIENT_GET_ALL,
+                    Protocol.MEDICINE_GET_ALL,
+                    Protocol.PRESCRIPTION_GET_ALL
+            };
+
+            String[] labels = {
+                    "Doctores", "Farmacéuticos", "Pacientes", "Medicamentos", "Prescripciones"
+            };
+
+            for (int i = 0; i < requests.length; i++) {
+                int code = requests[i];
+                String label = labels[i];
+
+                System.out.println("\n[SYNC] Solicitando lista de " + label + "...");
+                syncOs.writeInt(code);
+                syncOs.flush();
+
+                int status = syncIs.readInt();
+                if (status == Protocol.ERROR_NO_ERROR) {
+                    Object obj = syncIs.readObject();
+                    if (obj instanceof List<?> list) {
+                        System.out.println("✅ " + label + " recibidos: " + list.size());
                         if (!list.isEmpty()) {
-                            System.out.println("First item class: " + list.get(0).getClass().getName());
-                            System.out.println("First item toString: " + list.get(0).toString());
+                            System.out.println("Primer elemento: " + list.get(0));
                         }
                     } else {
-                        System.out.println("Response is not a List. Actual type: " +
-                                (response != null ? response.getClass().getName() : "null"));
+                        System.out.println("⚠️ El servidor devolvió un tipo inesperado: " + obj.getClass().getName());
                     }
-                } catch (OptionalDataException ode) {
-                    System.out.println("OptionalDataException details:");
-                    System.out.println("- EOF: " + ode.eof);
-                    System.out.println("- Length: " + ode.length);
-                }
-            } else {
-                System.out.println("Server returned error status: " + status);
-                try {
-                    Object err = in.readObject();
-                    System.out.println("Error payload type: " + (err != null ? err.getClass().getName() : "null"));
-                    System.out.println("Error message/payload: " + err);
-                } catch (Exception e) {
-                    System.out.println("No readable error message available");
+                } else {
+                    System.out.println("❌ Error al obtener " + label);
                 }
             }
+
+            // --- 5) Cerrar sesión ---
+            System.out.println("\n[SYNC] Enviando DISCONNECT...");
+            syncOs.writeInt(Protocol.DISCONNECT);
+            syncOs.flush();
+
+            // --- 6) Cierre de recursos ---
+            asyncIs.close();
+            asyncOs.close();
+            asyncSocket.close();
+            syncIs.close();
+            syncOs.close();
+            syncSocket.close();
+
+            System.out.println("\n=== BACKEND TESTER FINALIZADO ===");
+
         } catch (Exception e) {
-            System.err.println("Error testing " + label.toLowerCase() + ": " + e);
+            System.err.println("❌ Error en tester: " + e.getMessage());
             e.printStackTrace();
         }
     }

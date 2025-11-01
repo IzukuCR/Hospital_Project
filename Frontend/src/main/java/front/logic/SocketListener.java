@@ -18,7 +18,7 @@ public class SocketListener extends Thread{
         super("SocketListener-");
         this.asyncSocket = asyncSocket;
         this.listener = listener;
-        // do NOT create ObjectInputStream here (can block). Create it in run().
+
     }
 
     @Override
@@ -26,9 +26,9 @@ public class SocketListener extends Thread{
         running = true;
         try (Socket s = asyncSocket) {
             try {
-                input = new ObjectInputStream(s.getInputStream()); // may block, but off the EDT / init thread
+                input = new ObjectInputStream(s.getInputStream());
             } catch (IOException e) {
-                System.err.println("Failed to create async input stream: " + e.getMessage());
+                System.err.println("[SocketListener] Error creando input stream: " + e.getMessage());
                 return;
             }
 
@@ -36,7 +36,7 @@ public class SocketListener extends Thread{
                 try {
                     Object obj = input.readObject();
                     if (obj != null && listener != null) {
-                        listener.onAsyncNotification(obj);
+                        SwingUtilities.invokeLater(() ->listener.onAsyncNotification(obj));
                     }
                 } catch (IOException e) {
                     if (running) {

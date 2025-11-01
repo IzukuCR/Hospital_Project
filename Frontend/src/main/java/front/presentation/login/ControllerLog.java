@@ -25,63 +25,74 @@ public class ControllerLog {
     }
 
     public void changePassword(String username, String oldPassword, String newPassword, String confirmPassword) {
-        try {
-            if (username.isEmpty() || oldPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
-                viewLog.showMessage("Please fill all fields", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+        new Thread(() -> {
+            try {
+                if (username.isEmpty() || oldPassword.isEmpty() || newPassword.isEmpty() || confirmPassword.isEmpty()) {
+                    SwingUtilities.invokeLater(() ->
+                            viewLog.showMessage("Please fill all fields", "Error", JOptionPane.ERROR_MESSAGE));
+                    return;
+                }
 
-            if (!newPassword.equals(confirmPassword)) {
-                viewLog.showMessage("New passwords don't match", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+                if (!newPassword.equals(confirmPassword)) {
+                    SwingUtilities.invokeLater(() ->
+                            viewLog.showMessage("New passwords don't match", "Error", JOptionPane.ERROR_MESSAGE));
+                    return;
+                }
 
-            if (newPassword.length() < 3) {
-                viewLog.showMessage("Password must be at least 3 characters", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+                if (newPassword.length() < 3) {
+                    SwingUtilities.invokeLater(() ->
+                            viewLog.showMessage("Password must be at least 3 characters", "Error", JOptionPane.ERROR_MESSAGE));
+                    return;
+                }
 
-            String userType = services.log().validateUserType(username, oldPassword);
+                String userType = services.log().validateUserType(username, oldPassword);
 
-            if (userType == null && !Application.isAdminCredentials(username, oldPassword)) {
-                viewLog.showMessage("Invalid current credentials", "Error", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+                if (userType == null && !Application.isAdminCredentials(username, oldPassword)) {
+                    SwingUtilities.invokeLater(() ->
+                            viewLog.showMessage("Invalid current credentials", "Error", JOptionPane.ERROR_MESSAGE));
+                    return;
+                }
 
-            boolean success = false;
+                boolean success = false;
 
-            if (Application.isAdminCredentials(username, oldPassword)) {
-                success = Application.changeAdminPassword(oldPassword, newPassword);
-                if (success) {
-                    viewLog.showMessage("Admin password changed successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
+                if (Application.isAdminCredentials(username, oldPassword)) {
+                    success = Application.changeAdminPassword(oldPassword, newPassword);
+                    final boolean ok = success;
+                    SwingUtilities.invokeLater(() -> {
+                        if (ok)
+                            viewLog.showMessage("Admin password changed successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
+                        else
+                            viewLog.showMessage("Failed to change admin password", "Error", JOptionPane.ERROR_MESSAGE);
+                    });
+                    return;
                 } else {
-                    viewLog.showMessage("Failed to change admin password", "Error", JOptionPane.ERROR_MESSAGE);
+                    switch (userType) {
+                        case Application.USER_TYPE_DOCTOR:
+                            success = changeDoctorPassword(username, oldPassword, newPassword);
+                            break;
+                        case Application.USER_TYPE_PHARMACIST:
+                            success = changePharmacistPassword(username, oldPassword, newPassword);
+                            break;
+                        default:
+                            SwingUtilities.invokeLater(() ->
+                                    viewLog.showMessage("User type not supported for password change", "Error", JOptionPane.ERROR_MESSAGE));
+                            return;
+                    }
                 }
-                return;
-            } else {
-                switch (userType) {
-                    case Application.USER_TYPE_DOCTOR:
-                        success = changeDoctorPassword(username, oldPassword, newPassword);
-                        break;
-                    case Application.USER_TYPE_PHARMACIST:
-                        success = changePharmacistPassword(username, oldPassword, newPassword);
-                        break;
-                    default:
-                        viewLog.showMessage("User type not supported for password change", "Error", JOptionPane.ERROR_MESSAGE);
-                        return;
-                }
-            }
 
-            if (success) {
-                viewLog.showMessage("Password changed successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
-                // Guardado exitoso en base de datos (ya se hizo en changeDoctorPassword/changePharmacistPassword)
-            } else {
-                viewLog.showMessage("Failed to change password", "Error", JOptionPane.ERROR_MESSAGE);
-            }
+                final boolean ok = success;
+                SwingUtilities.invokeLater(() -> {
+                    if (ok)
+                        viewLog.showMessage("Password changed successfully", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    else
+                        viewLog.showMessage("Failed to change password", "Error", JOptionPane.ERROR_MESSAGE);
+                });
 
-        } catch (Exception e) {
-            viewLog.showMessage("Error changing password: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        }
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() ->
+                        viewLog.showMessage("Error changing password: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE));
+            }
+        }, "ChangePassword-Thread").start();
     }
 
     private boolean changeDoctorPassword(String username, String oldPassword, String newPassword) {
@@ -142,90 +153,101 @@ public class ControllerLog {
     }
 
     public void login(String username, String password) {
-        try {
-            if (username.isEmpty() || password.isEmpty()) {
-                viewLog.showError("Complete form");
-                return;
-            }
-
-            Service service = Service.instance();
-
-            // 🔹 Paso 1: Conectarse al servidor si aún no hay conexión activa
-            try {
-                if (service.getSyncSocket() == null || service.getSyncSocket().isClosed()) {
-                    System.out.println("🔌 Connecting before login validation...");
-                    service.connect();
-                    System.out.println("Connection established before user validation");
-                }
-            } catch (Exception ex) {
-                viewLog.showError("Cannot connect to server: " + ex.getMessage());
-                return;
-            }
-
-            // 🔹 Paso 2: Validar credenciales de administrador
-            if (Application.isAdminCredentials(username, password)) {
-                JOptionPane.showMessageDialog(viewLog, "Successful login as Administrator. Accessing System...");
-                try {
-                    service.connectAfterLogin(username); // establecer sessionID real
-                } catch (Exception e) {
-                    System.err.println("Error linking admin session: " + e.getMessage());
-                }
-                Application.showUserWindow(Application.USER_TYPE_ADMIN, username);
-                viewLog.disposeView();
-                return;
-            }
-
-            // 🔹 Paso 3: Validar como doctor
-            try {
-                Doctor doctor = new Doctor();
-                doctor.setId(username);
-                doctor.setPassword(password);
-                Doctor validatedDoctor = service.doctor().validateLogin(doctor);
-
-                if (validatedDoctor != null) {
-                    JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
-                    try {
-                        service.connectAfterLogin(username); // establecer sessionID del doctor
-                    } catch (Exception e) {
-                        System.err.println("Error linking doctor session: " + e.getMessage());
-                    }
-                    Application.showUserWindow(Application.USER_TYPE_DOCTOR, username);
-                    viewLog.disposeView();
-                    return;
-                }
-            } catch (Exception e) {
-                System.err.println("Doctor validation failed: " + e.getMessage());
-            }
-
-            // 🔹 Paso 4: Validar como farmacéutico
-            try {
-                Pharmacist pharmacist = new Pharmacist();
-                pharmacist.setId(username);
-                pharmacist.setPassword(password);
-                Pharmacist validatedPharmacist = service.pharmacist().validateLogin(pharmacist);
-
-                if (validatedPharmacist != null) {
-                    JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
-                    try {
-                        service.connectAfterLogin(username); // establecer sessionID del farmacéutico
-                    } catch (Exception e) {
-                        System.err.println("Error linking pharmacist session: " + e.getMessage());
-                    }
-                    Application.showUserWindow(Application.USER_TYPE_PHARMACIST, username);
-                    viewLog.disposeView();
-                    return;
-                }
-            } catch (Exception e) {
-                System.err.println("Pharmacist validation failed: " + e.getMessage());
-            }
-
-            // 🔹 Paso 5: Ninguna validación exitosa
-            viewLog.showError("Invalid username or password");
-
-        } catch (Exception e) {
-            viewLog.showError("System error: " + e.getMessage());
-            e.printStackTrace();
+        if (username.isEmpty() || password.isEmpty()) {
+            viewLog.showError("Complete form");
+            return;
         }
+
+        new Thread(() -> {
+            try {
+                Service service = Service.instance();
+
+                // Paso 1: conectar si no hay sesión activa
+                if (service.getSyncSocket() == null || service.getSyncSocket().isClosed()) {
+                    try {
+                        System.out.println("Connecting before login validation...");
+                        service.connect();
+                        System.out.println("Connection established before user validation");
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() ->
+                                viewLog.showError("Cannot connect to server: " + ex.getMessage()));
+                        return;
+                    }
+                }
+
+                // Paso 2: Validar administrador
+                if (Application.isAdminCredentials(username, password)) {
+                    SwingUtilities.invokeLater(() -> {
+                        JOptionPane.showMessageDialog(viewLog, "Successful login as Administrator. Accessing System...");
+                        try {
+                            service.connectAfterLogin(username);
+                        } catch (Exception e) {
+                            System.err.println("Error linking admin session: " + e.getMessage());
+                        }
+                        Application.showUserWindow(Application.USER_TYPE_ADMIN, username);
+                        viewLog.disposeView();
+                    });
+                    return;
+                }
+
+                // Paso 3: Validar Doctor
+                try {
+                    Doctor doctor = new Doctor();
+                    doctor.setId(username);
+                    doctor.setPassword(password);
+                    Doctor validatedDoctor = service.doctor().validateLogin(doctor);
+
+                    if (validatedDoctor != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                            try {
+                                service.connectAfterLogin(username);
+                            } catch (Exception e) {
+                                System.err.println("Error linking doctor session: " + e.getMessage());
+                            }
+                            Application.showUserWindow(Application.USER_TYPE_DOCTOR, username);
+                            viewLog.disposeView();
+                        });
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Doctor validation failed: " + e.getMessage());
+                }
+
+                // Paso 4: Validar Pharmacist
+                try {
+                    Pharmacist pharmacist = new Pharmacist();
+                    pharmacist.setId(username);
+                    pharmacist.setPassword(password);
+                    Pharmacist validatedPharmacist = service.pharmacist().validateLogin(pharmacist);
+
+                    if (validatedPharmacist != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(viewLog, "Successful login. Accessing System...");
+                            try {
+                                service.connectAfterLogin(username);
+                            } catch (Exception e) {
+                                System.err.println("Error linking pharmacist session: " + e.getMessage());
+                            }
+                            Application.showUserWindow(Application.USER_TYPE_PHARMACIST, username);
+                            viewLog.disposeView();
+                        });
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Pharmacist validation failed: " + e.getMessage());
+                }
+
+                // Paso 5: Ninguna validación exitosa
+                SwingUtilities.invokeLater(() -> viewLog.showError("Invalid username or password"));
+
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    viewLog.showError("System error: " + e.getMessage());
+                    e.printStackTrace();
+                });
+            }
+        }, "Login-Thread").start();
     }
 
     public void exit() {

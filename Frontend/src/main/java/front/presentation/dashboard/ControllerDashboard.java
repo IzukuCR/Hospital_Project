@@ -24,7 +24,6 @@ public class ControllerDashboard implements ThreadListener {
     private ViewDashboard view;
     private AbstractModelDashboard model;
     private Service service;
-    Refresher refresher;
 
     public ControllerDashboard(ViewDashboard view, AbstractModelDashboard model){
         this.view = view;
@@ -32,10 +31,8 @@ public class ControllerDashboard implements ThreadListener {
         this.service = Service.instance();
         view.setControllerDashboard(this);
         view.setModelDashboard(model);
-
-        refresher = new Refresher(this);
-        refresher.start();
     }
+
 
     public JFreeChart createMedicineLineChart(Date startDate, Date endDate, String[] selectedMedicines) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -143,9 +140,17 @@ public class ControllerDashboard implements ThreadListener {
     @Override
     public void refresh() {
         try {
+            // Simplemente solicita al modelo que actualice sus datos
+            Date startDate = new Date(System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)); // último mes
+            Date endDate = new Date();
 
+            // Forzar actualización de los datos del modelo
+            model.getMedicinesPrescribedByMonth(startDate, endDate);
+            model.getPrescriptionsByStatus();
+
+            System.out.println("[ControllerDashboard] Dashboard refreshed successfully");
         } catch (Exception e) {
-            System.err.println("Dashboard refresh error: " + e.getMessage());
+            System.err.println("[ControllerDashboard] Refresh error: " + e.getMessage());
         }
     }
 

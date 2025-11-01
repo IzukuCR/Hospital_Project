@@ -66,28 +66,22 @@ public class Service {
     }
 
     public void connect() throws IOException, ClassNotFoundException {
-        System.out.println("🔌 Connecting to server...");
+        System.out.println("Connecting to server...");
 
         // --- SYNC ---
         syncSocket = new Socket(Protocol.SERVER, Protocol.PORT_SYNC);
         syncOs = new ObjectOutputStream(syncSocket.getOutputStream());
         syncOs.flush();
         syncIs = new ObjectInputStream(syncSocket.getInputStream());
+        System.out.println("SYNC connection established with server.");
 
-        // enviar id vacío (pre-login)
-        syncOs.writeObject("");
-        syncOs.flush();
-
-        // recibir id de sesión temporal
-        sessionId = (String) syncIs.readObject();
-        System.out.println("✅ SYNC connected. Temporary session ID: " + sessionId);
 
         // --- ASYNC ---
         asyncSocket = new Socket(Protocol.SERVER, Protocol.PORT_ASYNC);
         asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
         asyncOs.flush();
         asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
-        System.out.println("✅ ASYNC connected for session: " + sessionId);
+        System.out.println("ASYNC connection established with server.");
 
         // --- Listener asíncrono ---
         socketListener = new SocketListener(asyncSocket, new AsyncListener() {
@@ -487,11 +481,13 @@ public class Service {
 
         public List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_DATE);
-            syncOs.writeObject(date == null ? null : date.toString());
-            syncOs.writeObject(patientId);
+            syncOs.writeObject(new Object[]{ date, patientId }); 
             syncOs.flush();
-            if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) syncIs.readObject();
-            else throw new Exception();
+
+            if (syncIs.readInt() == Protocol.ERROR_NO_ERROR)
+                return (List<Prescription>) syncIs.readObject();
+            else
+                throw new Exception();
         }
 
         public List<Prescription> getPrescriptionsByDoctor(String doctorId) throws Exception {

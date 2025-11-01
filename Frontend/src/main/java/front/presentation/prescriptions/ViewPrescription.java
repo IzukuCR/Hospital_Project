@@ -55,8 +55,6 @@ public class ViewPrescription implements PropertyChangeListener {
     private static final String SEARCH_BY_PATIENT_ID = "Search by Patient ID";
     private static final String SEARCH_BY_PATIENT_NAME = "Search by Patient Name";
 
-    private final Service service = Service.instance();
-
     ControllerPrescription controller;
     ModelPrescription model;
 
@@ -280,13 +278,9 @@ public class ViewPrescription implements PropertyChangeListener {
             }
 
             String searchType = (String) searchComboBox.getSelectedItem();
-            List<Prescription> results;
 
-            if (SEARCH_BY_PATIENT_ID.equals(searchType)) {
-                results = controller.searchByPatient(searchText);
-            } else {
-                results = controller.searchByPatient(searchText);
-            }
+            List<Prescription> results = controller.searchByPatient(searchText);
+
 
             if (results.isEmpty()) {
                 JOptionPane.showMessageDialog(panel, "No prescriptions found", "Info", JOptionPane.INFORMATION_MESSAGE);
@@ -299,14 +293,17 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void handlePatientSearch() {
-        try{
-            if (service.patient().getPatients().size() == 0) {
+        try {
+            List<Patient> allPatients = controller.getAllPatients();
+
+            if (allPatients.isEmpty()) {
                 JOptionPane.showMessageDialog(panel,
                         "No patients available. Please add patients first.",
                         "No Patients",
                         JOptionPane.INFORMATION_MESSAGE);
                 return;
             }
+
             JDialog patientDialog = new JDialog((Frame) null, "Select Patient", true);
             patientDialog.setSize(700, 500);
             patientDialog.setLocationRelativeTo(panel);
@@ -318,7 +315,6 @@ public class ViewPrescription implements PropertyChangeListener {
             JTextField searchField = new JTextField(20);
             JButton searchButton = new JButton("Search");
             searchButton.setBackground(Color.decode("#476194"));
-
             searchButton.setForeground(Color.white);
             searchButton.setOpaque(true);
 
@@ -329,9 +325,7 @@ public class ViewPrescription implements PropertyChangeListener {
             String[] columnNames = {"ID", "Name", "Birth Date", "Phone"};
             DefaultTableModel patientTableModel = new DefaultTableModel(columnNames, 0) {
                 @Override
-                public boolean isCellEditable(int row, int column) {
-                    return false;
-                }
+                public boolean isCellEditable(int row, int column) { return false; }
             };
 
             JTable patientTable = new JTable(patientTableModel);
@@ -339,7 +333,6 @@ public class ViewPrescription implements PropertyChangeListener {
             patientTable.getTableHeader().setReorderingAllowed(false);
             JScrollPane scrollPane = new JScrollPane(patientTable);
 
-            List<Patient> allPatients = service.patient().getPatients();
             for (Patient patient : allPatients) {
                 patientTableModel.addRow(new Object[]{
                         patient.getId(),
@@ -357,7 +350,6 @@ public class ViewPrescription implements PropertyChangeListener {
                     if (searchText.isEmpty() ||
                             patient.getId().toLowerCase().contains(searchText) ||
                             patient.getName().toLowerCase().contains(searchText)) {
-
                         patientTableModel.addRow(new Object[]{
                                 patient.getId(),
                                 patient.getName(),
@@ -374,16 +366,10 @@ public class ViewPrescription implements PropertyChangeListener {
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
             JButton selectButton = new JButton("Select");
             JButton cancelButton = new JButton("Cancel");
-
-
-            selectButton.setBackground(Color.decode("#52AC41"));  // Verde
-            cancelButton.setBackground(Color.decode("#AF4C4C"));  // Rojo
-
-
+            selectButton.setBackground(Color.decode("#52AC41"));
+            cancelButton.setBackground(Color.decode("#AF4C4C"));
             selectButton.setForeground(Color.black);
             cancelButton.setForeground(Color.black);
-
-
             selectButton.setOpaque(true);
             cancelButton.setOpaque(true);
 
@@ -392,10 +378,8 @@ public class ViewPrescription implements PropertyChangeListener {
                 if (selectedRow >= 0) {
                     String patientId = (String) patientTable.getValueAt(selectedRow, 0);
                     String patientName = (String) patientTable.getValueAt(selectedRow, 1);
-
                     patientIdFld.setText(patientId);
                     patientNameFld.setText(patientName);
-
                     patientDialog.dispose();
                 } else {
                     JOptionPane.showMessageDialog(patientDialog,
@@ -406,7 +390,6 @@ public class ViewPrescription implements PropertyChangeListener {
             });
 
             cancelButton.addActionListener(e -> patientDialog.dispose());
-
             buttonPanel.add(selectButton);
             buttonPanel.add(cancelButton);
 
@@ -415,7 +398,6 @@ public class ViewPrescription implements PropertyChangeListener {
             dialogPanel.add(buttonPanel, BorderLayout.SOUTH);
 
             patientTable.setAutoCreateRowSorter(true);
-
             patientTable.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
                 public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -427,7 +409,7 @@ public class ViewPrescription implements PropertyChangeListener {
 
             patientDialog.setContentPane(dialogPanel);
             patientDialog.setVisible(true);
-        }catch (Exception e){
+        } catch (Exception e) {
             JOptionPane.showMessageDialog(panel,
                     "Error accessing patients data: " + e.getMessage(),
                     "Error",
@@ -772,26 +754,27 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void displayPrescription(Prescription prescription) {
-        try{
+        try {
             idFld.setText(prescription.getId());
             patientIdFld.setText(prescription.getPatientId());
 
-            Patient patient = service.patient().readById(prescription.getPatientId());
+            Patient patient = controller.getPatientById(prescription.getPatientId());
             if (patient != null) {
                 patientNameFld.setText(patient.getName());
             }
 
-            if (model.getDoctor()  != null) {
-                docIdFld.setText(model.getDoctor() .getId());
-                docNameFld.setText(model.getDoctor() .getName());
+            if (model.getDoctor() != null) {
+                docIdFld.setText(model.getDoctor().getId());
+                docNameFld.setText(model.getDoctor().getName());
             }
 
             itemsTableModel.setRowCount(0);
             if (prescription.getItems() != null) {
                 for (PrescriptionItem item : prescription.getItems()) {
-
-                    Medicine medicine = service.medicine().readByCode(item.getMedicineCode());
-                    String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
+                    Medicine medicine = controller.getMedicineByCode(item.getMedicineCode());
+                    String medicineName = medicine != null
+                            ? medicine.getName() + " (" + medicine.getPresentation() + ")"
+                            : item.getMedicineCode();
 
                     itemsTableModel.addRow(new Object[]{
                             item.getMedicineCode(),
@@ -816,7 +799,7 @@ public class ViewPrescription implements PropertyChangeListener {
             setPrescriptionEditable(isOwnPrescription);
 
             if (!isOwnPrescription) {
-                Doctor prescriptionDoctor = service.doctor().searchByID(prescription.getDoctorId());
+                Doctor prescriptionDoctor = controller.getDoctorById(prescription.getDoctorId());
                 if (prescriptionDoctor != null) {
                     JOptionPane.showMessageDialog(panel,
                             "Prescription created by: " + prescriptionDoctor.getName() +
@@ -825,7 +808,7 @@ public class ViewPrescription implements PropertyChangeListener {
                             JOptionPane.INFORMATION_MESSAGE);
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -873,14 +856,16 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void refreshItemsTable() {
-        try{
+        try {
             itemsTableModel.setRowCount(0);
             Prescription current = model.getCurrent();
 
             if (current != null && current.getItems() != null) {
                 for (PrescriptionItem item : current.getItems()) {
-                    Medicine medicine = service.medicine().readByCode((item.getMedicineCode()));
-                    String medicineName = medicine != null ? medicine.getName() + " (" + medicine.getPresentation() + ")" : item.getMedicineCode();
+                    Medicine medicine = controller.getMedicineByCode(item.getMedicineCode());
+                    String medicineName = medicine != null
+                            ? medicine.getName() + " (" + medicine.getPresentation() + ")"
+                            : item.getMedicineCode();
 
                     itemsTableModel.addRow(new Object[]{
                             item.getMedicineCode(),
@@ -891,7 +876,7 @@ public class ViewPrescription implements PropertyChangeListener {
                     });
                 }
             }
-        }catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

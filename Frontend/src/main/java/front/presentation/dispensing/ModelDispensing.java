@@ -16,7 +16,6 @@ public class ModelDispensing extends AbstractModelDispensing {
     private Prescription currentPrescription;
     private List<Prescription> prescriptionsList;
     private List<Patient> patientsList;
-    private Service service = Service.instance();
     private PropertyChangeSupport support;
 
     public static final String CURRENT = "current";
@@ -78,17 +77,6 @@ public class ModelDispensing extends AbstractModelDispensing {
         String oldStatus = this.status;
         this.status = status;
         support.firePropertyChange(CURRENT, oldStatus, this.status);
-    }
-
-    public Prescription savePrescription() {
-        try {
-            if (this.currentPrescription == null) return null;
-            System.out.println("Saving prescription: ");
-            return service.prescription().update(this.currentPrescription);
-        } catch (Exception e) {
-            System.out.println("Error saving prescription (model): " + e.getMessage());
-            return null;
-        }
     }
 
     public void setPrescriptionsList(List<Prescription> prescriptionsLista) {

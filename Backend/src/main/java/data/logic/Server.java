@@ -32,23 +32,21 @@ public class Server {
                 syncOs.flush();
                 ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
 
-                String sessionId = (String) syncIs.readObject();
-                if (sessionId == null || sessionId.isEmpty()) sessionId = UUID.randomUUID().toString();
 
-                syncOs.writeObject(sessionId);
-                syncOs.flush();
+                System.out.println("SYNC connection established.");
 
-                System.out.println("Waiting ASYNC connection for " + sessionId + "...");
+                // Esperar conexión asíncrona
+                System.out.println("Waiting ASYNC connection...");
                 Socket asyncSocket = asyncServer.accept();
                 ObjectOutputStream asyncOs = new ObjectOutputStream(asyncSocket.getOutputStream());
                 asyncOs.flush();
                 ObjectInputStream asyncIs = new ObjectInputStream(asyncSocket.getInputStream());
 
-                Worker worker = new Worker(this, sessionId, syncSocket, syncOs, syncIs, asyncSocket, asyncOs, asyncIs);
-                activeUsers.put(sessionId, worker);
+                Worker worker = new Worker(this, syncSocket, syncOs, syncIs, asyncSocket, asyncOs, asyncIs);
+                activeUsers.put(worker.getSessionId(), worker);
                 worker.start();
 
-                System.out.println("Connected: " + sessionId + " (Active users: " + activeUsers.size() + ")");
+                System.out.println("Connected new Worker. Active users: " + activeUsers.size());
             } catch (Exception e) {
                 System.err.println("Server error: " + e.getMessage());
                 e.printStackTrace();

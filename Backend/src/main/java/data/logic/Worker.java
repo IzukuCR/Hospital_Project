@@ -6,6 +6,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 import logic.*;
 
@@ -19,14 +20,16 @@ public class Worker extends Thread {
     private volatile boolean running = true;
     private Service service = Service.instance();
 
-    public Worker(Server server, String sessionId,
+    public Worker(Server server,
                   Socket syncSocket, ObjectOutputStream syncOs, ObjectInputStream syncIs,
                   Socket asyncSocket, ObjectOutputStream asyncOs, ObjectInputStream asyncIs) {
         this.server = server;
-        this.sessionId = sessionId;
+        this.sessionId = UUID.randomUUID().toString();
+
         this.syncSocket = syncSocket;
         this.syncOs = syncOs;
         this.syncIs = syncIs;
+
         this.asyncSocket = asyncSocket;
         this.asyncOs = asyncOs;
         this.asyncIs = asyncIs;
@@ -37,7 +40,11 @@ public class Worker extends Thread {
         System.out.println("Worker started for session: " + sessionId);
         Thread asyncThread = new Thread(this::listenAsync);
         asyncThread.start();
-        listenSync();
+        listen();
+    }
+
+    public String getSessionId() {
+        return sessionId;
     }
 
     private void listenSync() {
@@ -436,13 +443,14 @@ public class Worker extends Thread {
 
                     case Protocol.PRESCRIPTION_BY_DATE:
                         try {
-                            Object[] params = (Object[]) syncIs.readObject();
-                            LocalDate date = (LocalDate) params[0];
-                            String patientId = (String) params[1];
+                            LocalDate date = (LocalDate) syncIs.readObject();
+                            String patientId = (String) syncIs.readObject();
                             List<Prescription> list = service.prescription().getPrescriptionsByDate(date, patientId);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(list);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                        }
                         break;
 
                     // -------------------- DISCONNECT --------------------

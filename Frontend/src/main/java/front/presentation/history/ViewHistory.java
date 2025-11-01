@@ -27,8 +27,6 @@ public class ViewHistory implements PropertyChangeListener {
     private static final String SEARCH_BY_PATIENT_ID = "Search by Patient ID";
     private static final String SEARCH_BY_DOCTOR_ID = "Search by Doctor ID"; // CAMBIADO
 
-    private Service service = Service.instance();
-
     ControllerHistory controllerHistory;
     ModelHistory modelHistory;
 
@@ -142,8 +140,10 @@ public class ViewHistory implements PropertyChangeListener {
         details.append("=== PRESCRIPTION DETAILS ===\n\n");
         details.append("ID: ").append(prescription.getId()).append("\n");
         details.append("Patient ID: ").append(prescription.getPatientId()).append("\n");
-        try{
-            Patient patient = service.patient().readById(prescription.getPatientId());
+
+        try {
+            // 🔹 Reemplazo de llamadas directas al Service
+            Patient patient = controllerHistory.getPatientById(prescription.getPatientId());
             if (patient != null) {
                 details.append("Patient Name: ").append(patient.getName()).append("\n");
             }
@@ -153,7 +153,7 @@ public class ViewHistory implements PropertyChangeListener {
             details.append("Status: ").append(prescription.getStatus()).append("\n");
             details.append("Doctor ID: ").append(prescription.getDoctorId()).append("\n");
 
-            Doctor doctor = service.doctor().searchByID(prescription.getDoctorId());
+            Doctor doctor = controllerHistory.getDoctorById(prescription.getDoctorId());
             if (doctor != null) {
                 details.append("Doctor Name: ").append(doctor.getName()).append("\n");
             }
@@ -161,8 +161,9 @@ public class ViewHistory implements PropertyChangeListener {
             details.append("\n=== MEDICINES ===\n");
             if (prescription.getItems() != null && !prescription.getItems().isEmpty()) {
                 for (PrescriptionItem item : prescription.getItems()) {
-                    Medicine medicine = service.medicine().readByCode(item.getMedicineCode());
-                    details.append("\nMedicine: ").append(medicine != null ? medicine.getName() : item.getMedicineCode()).append("\n");
+                    Medicine medicine = controllerHistory.getMedicineByCode(item.getMedicineCode());
+                    details.append("\nMedicine: ")
+                            .append(medicine != null ? medicine.getName() : item.getMedicineCode()).append("\n");
                     details.append("Code: ").append(item.getMedicineCode()).append("\n");
                     details.append("Quantity: ").append(item.getQuantity()).append("\n");
                     details.append("Duration: ").append(item.getDurationDays()).append(" days\n");
@@ -174,8 +175,9 @@ public class ViewHistory implements PropertyChangeListener {
 
             detailsArea.setText(details.toString());
 
-        }catch(Exception e){
+        } catch (Exception e) {
             details.append("Patient Name: N/A\n");
+            detailsArea.setText(details.toString());
         }
     }
 

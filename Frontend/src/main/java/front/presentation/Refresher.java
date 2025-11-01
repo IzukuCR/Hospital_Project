@@ -2,43 +2,46 @@ package front.presentation;
 
 import javax.swing.*;
 
-public class Refresher {
-    ThreadListener listener;
+public class Refresher extends Thread {
 
-    public Refresher(ThreadListener listener) {
+    private final ThreadListener listener;
+    private volatile boolean running = false;
+    private final int intervalMs;
+
+    private long counter = 0;
+
+    public Refresher(ThreadListener listener, int intervalMs) {
+        super("Refresher-Thread");
         this.listener = listener;
+        this.intervalMs = intervalMs;
     }
-    
-    private Thread hilo;
-    private boolean condition=false;
-    public void start(){
-        Runnable task = new Runnable(){
-            public void run(){
-                while(condition){ 
-                    try { Thread.sleep(2000);} 
-                    catch (InterruptedException ex) {}
-                    refresh();
-                }
+
+
+    @Override
+    public void run() {
+        running = true;
+        System.out.println("[Refresher] Iniciado, intervalo = " + intervalMs + " ms");
+
+        while (running) {
+            try {
+                Thread.sleep(intervalMs);
+                System.out.println("[Refresher] Ciclo #" + counter++);
+
+                // 🔹 Ejecuta la actualización del modelo/UI en el EDT
+                SwingUtilities.invokeLater(listener::refresh);
+
+            } catch (InterruptedException e) {
+                System.out.println("[Refresher] Interrumpido, cerrando...");
+                running = false;
+            } catch (Exception e) {
+                System.err.println("[Refresher] Error durante el refresco: " + e.getMessage());
             }
-        };
-        hilo = new Thread(task);
-        condition=true;
-        hilo.start();        
-    }
-    public void stop(){
-        condition=false;
-    }
+        }
 
-    long c=0;
-
-    private void refresh(){
-        System.out.println(c++);
-        SwingUtilities.invokeLater(
-            new Runnable(){
-                public void run(){
-                    listener.refresh();
-                }
-             }
-        );          
-    }    
+        System.out.println("[Refresher] Finalizado correctamente.");
+    }
+    public void stopRefresher() {
+        running = false;
+        this.interrupt();
+    }
 }

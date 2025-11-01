@@ -14,7 +14,7 @@ public class SearchPatientsController implements ThreadListener {
 
     private final View view;
     private final SearchPatientsModel model;
-    private final TableModelPatient tableModel;
+    private TableModelPatient tableModel;
 
     private PatientSelectionListener selectionListener;
 
@@ -30,26 +30,25 @@ public class SearchPatientsController implements ThreadListener {
         this.service = Service.instance();
 
         this.view.setController(this);
-        try{
-            this.tableModel = new TableModelPatient(new ArrayList<>(service.patient().getPatients()));
-        }catch(Exception e){
-            throw new RuntimeException("Error initializing TableModelPatient: " + e.getMessage());
-        }
-        this.view.setTableModel(tableModel);
+        new Thread(() -> {
+            try {
+                List<Patient> patients = Service.instance().patient().getPatients();
+                SwingUtilities.invokeLater(() -> {
+                    this.tableModel = new TableModelPatient(patients);
+                    this.view.setTableModel(tableModel);
+                    model.setPatients(patients);
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(view.getRoot(),
+                                "Error initializing patients: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE)
+                );
+            }
+        }, "Init-SearchPatients").start();
 
-        //loadAll();
     }
 
-    private void loadAll() {
-        try{
-            List<Patient> all = service.patient().getPatients();
-            model.setPatients(all);
-            tableModel.setData(all);
-        }catch (Exception e){
-            JOptionPane.showMessageDialog(view.getRoot(), "Error to load patients: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
 
     public void setSelectionListener(PatientSelectionListener listener) {
         this.selectionListener = listener;
@@ -99,7 +98,7 @@ public class SearchPatientsController implements ThreadListener {
         if (selectionListener != null) selectionListener.onPatientSelected(selected);
         onCancelRequested(); // cierra la ventana
     }
-    public void onClearRequested() {
+    /*public void onClearRequested() {
         lastQuery = "";
         try{
             List<Patient> all = service.patient().getPatients();
@@ -110,9 +109,28 @@ public class SearchPatientsController implements ThreadListener {
             JOptionPane.showMessageDialog(view.getRoot(), "Error to load patients: " + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }*/
+
+    public void onClearRequested() {
+        new Thread(() -> {
+            try {
+                List<Patient> all = Service.instance().patient().getPatients();
+                SwingUtilities.invokeLater(() -> {
+                    model.setPatients(all);
+                    tableModel.setData(all);
+                    model.setCurrent(new Patient());
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(view.getRoot(),
+                                "Error loading patients: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE)
+                );
+            }
+        }, "Clear-SearchPatients").start();
     }
 
-    private void applyFilter(String q) {
+    /*private void applyFilter(String q) {
 
         try{
             List<Patient> base = service.patient().getPatients();
@@ -142,14 +160,56 @@ public class SearchPatientsController implements ThreadListener {
             JOptionPane.showMessageDialog(view.getRoot(), "Error to load patients: " + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
+    }*/
+
+    private void applyFilter(String q) {
+        final String query = q;  // 🔹 copia final para usar dentro del hilo
+        new Thread(() -> {
+            try {
+                List<Patient> base = Service.instance().patient().getPatients();
+                List<Patient> filtered = new ArrayList<>();
+
+                if (query.isEmpty()) {
+                    filtered = base;
+                } else if (searchBy == SearchBy.ID) {
+                    String cleaned = query.replaceAll("\\D+", "");
+                    for (Patient p : base) {
+                        if (p.getId() != null && p.getId().startsWith(cleaned)) {
+                            filtered.add(p);
+                        }
+                    }
+                } else { // NAME
+                    String ql = query.toLowerCase();
+                    for (Patient p : base) {
+                        if (p.getName() != null && p.getName().toLowerCase().contains(ql)) {
+                            filtered.add(p);
+                        }
+                    }
+                }
+
+                List<Patient> finalFiltered = filtered;
+                SwingUtilities.invokeLater(() -> {
+                    model.setPatients(finalFiltered);
+                    tableModel.setData(finalFiltered);
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() ->
+                        JOptionPane.showMessageDialog(view.getRoot(),
+                                "Error loading patients: " + e.getMessage(),
+                                "Error", JOptionPane.ERROR_MESSAGE)
+                );
+            }
+        }, "Filter-SearchPatients").start();
     }
 
     @Override
     public void refresh() {
         try {
-            loadAll();
+            List<Patient> all = Service.instance().patient().getPatients();
+            model.setPatients(all);
+            tableModel.setData(all);
         } catch (Exception e) {
-            System.err.println("Dashboard refresh error: " + e.getMessage());
+            System.err.println("[SearchPatientsController] Refresh error: " + e.getMessage());
         }
     }
 }
