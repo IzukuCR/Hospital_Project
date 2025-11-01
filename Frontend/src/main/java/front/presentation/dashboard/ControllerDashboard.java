@@ -1,6 +1,8 @@
 package front.presentation.dashboard;
 
 import front.presentation.ThreadListener;
+import logic.Prescription;
+import logic.PrescriptionItem;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
@@ -16,16 +18,17 @@ import front.logic.Service;
 import front.presentation.Refresher;
 
 import java.awt.*;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
 public class ControllerDashboard implements ThreadListener {
 
     private ViewDashboard view;
-    private AbstractModelDashboard model;
+    private ModelDashboard model;
     private Service service;
 
-    public ControllerDashboard(ViewDashboard view, AbstractModelDashboard model){
+    public ControllerDashboard(ViewDashboard view, ModelDashboard model){
         this.view = view;
         this.model = model;
         this.service = Service.instance();
@@ -36,46 +39,21 @@ public class ControllerDashboard implements ThreadListener {
 
     public JFreeChart createMedicineLineChart(Date startDate, Date endDate, String[] selectedMedicines) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        Map<String, Map<String, Integer>> medicineData = model.getMedicinesPrescribedByMonth(startDate, endDate);
-
-
-        System.out.println("Creating medicine chart with date range: " + startDate + " to " + endDate);
-        System.out.println("Selected medicines: " + Arrays.toString(selectedMedicines));
-
-
-        System.out.println("Medicine data size: " + medicineData.size());
-
+        Map<String, Map<String, Integer>> data = model.getMedicinesData();
 
         for (String medicine : selectedMedicines) {
-            if (medicineData.containsKey(medicine)) {
-                System.out.println("Data for " + medicine + ": " + medicineData.get(medicine));
-            } else {
-                System.out.println("No data found for medicine: " + medicine);
-            }
-        }
-
-
-        if (!medicineData.containsKey("Cough Syrup")) {
-            medicineData.put("Cough Syrup", new HashMap<>());
-        }
-        medicineData.get("Cough Syrup").put("9-2025", 5); // Add test value
-
-        for (String medicine : selectedMedicines) {
-            if (medicineData.containsKey(medicine)) {
-                Map<String, Integer> monthlyData = new TreeMap<>(medicineData.get(medicine));
-
-                for (Map.Entry<String, Integer> entry : monthlyData.entrySet()) {
+            if (data.containsKey(medicine)) {
+                Map<String, Integer> monthData = new TreeMap<>(data.get(medicine));
+                for (Map.Entry<String, Integer> entry : monthData.entrySet()) {
                     dataset.addValue(entry.getValue(), medicine, entry.getKey());
                 }
             }
         }
 
-
-
         JFreeChart chart = ChartFactory.createLineChart(
-                "Prescription Medications by Month",
+                "Medicines Prescribed by Month",
                 "Month-Year",
-                "Prescription Quantity",
+                "Quantity",
                 dataset,
                 PlotOrientation.VERTICAL,
                 true,
@@ -83,28 +61,15 @@ public class ControllerDashboard implements ThreadListener {
                 false
         );
 
-
         CategoryPlot plot = chart.getCategoryPlot();
         LineAndShapeRenderer renderer = (LineAndShapeRenderer) plot.getRenderer();
-
-
         renderer.setDefaultShapesVisible(true);
-        renderer.setSeriesShape(0, new java.awt.geom.Ellipse2D.Double(-6.0, -6.0, 12.0, 12.0));
-        renderer.setSeriesShape(1, new java.awt.geom.Ellipse2D.Double(-6.0, -6.0, 12.0, 12.0));
-        renderer.setDefaultShapesFilled(true);
-
-        renderer.setSeriesStroke(0, new BasicStroke(2.5f));
-        renderer.setSeriesStroke(1, new BasicStroke(2.5f));
-
         renderer.setDefaultItemLabelsVisible(true);
-        StandardCategoryItemLabelGenerator labelGen = new StandardCategoryItemLabelGenerator();
-        renderer.setDefaultItemLabelGenerator(labelGen);
+        renderer.setDefaultItemLabelGenerator(new StandardCategoryItemLabelGenerator());
 
         NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
         rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
         rangeAxis.setLowerBound(0);
-
-
         plot.setBackgroundPaint(Color.WHITE);
 
         return chart;
@@ -112,7 +77,7 @@ public class ControllerDashboard implements ThreadListener {
 
     public JFreeChart createStatusPieChart() {
         DefaultPieDataset<String> dataset = new DefaultPieDataset<>();
-        Map<String, Integer> statusData = model.getPrescriptionsByStatus();
+        Map<String, Integer> statusData = model.getStatusData();
 
         for (Map.Entry<String, Integer> entry : statusData.entrySet()) {
             dataset.setValue(entry.getKey(), entry.getValue());
@@ -137,21 +102,54 @@ public class ControllerDashboard implements ThreadListener {
 
     }
 
+    private Map<String, Integer> calculateStatusData(List<Prescription> prescriptions) {
+        Map<String, Integer> result = new HashMap<>();
+        for (Prescription p : prescriptions) {
+            if (p.getStatus() != null)
+                result.put(p.getStatus(), result.getOrDefault(p.getStatus(), 0) + 1);
+        }
+        return result;
+    }
+
+    private Map<String, Map<String, Integer>> calculateMedicinesByMonth(List<Prescription> prescriptions) {
+        Map<String, Map<String, Integer>> result = new HashMap<>();
+        SimpleDateFormat fmt = new SimpleDateFormat("M-yyyy");
+
+        for (Prescription p : prescriptions) {
+            if (p.getItems() == null || p.getCreationDate() == null) continue;
+            String monthYear = fmt.format(p.getCreationDate());
+
+            for (PrescriptionItem item : p.getItems()) {
+                String medName = item.getMedicineCode();
+                result.putIfAbsent(medName, new TreeMap<>());
+                Map<String, Integer> monthData = result.get(medName);
+                monthData.put(monthYear, monthData.getOrDefault(monthYear, 0) + item.getQuantity());
+            }
+        }
+        return result;
+    }
+
     @Override
     public void refresh() {
         try {
-            // Simplemente solicita al modelo que actualice sus datos
-            Date startDate = new Date(System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)); // último mes
-            Date endDate = new Date();
+            // 1️⃣ Traer datos desde la BD (a través del Service)
+            List<Medicine> medicines = service.medicine().getMedicines();
+            List<Prescription> prescriptions = service.prescription().getPrescriptions();
 
-            // Forzar actualización de los datos del modelo
-            model.getMedicinesPrescribedByMonth(startDate, endDate);
-            model.getPrescriptionsByStatus();
+            // 2️⃣ Calcular los mapas y transformaciones necesarias
+            Map<String, Map<String, Integer>> medData = calculateMedicinesByMonth(prescriptions);
+            Map<String, Integer> statusData = calculateStatusData(prescriptions);
+
+            // 3️⃣ Actualizar el modelo con firePropertyChange()
+            model.setMedicinesList(medicines);
+            model.setMedicinesData(medData);
+            model.setStatusData(statusData);
 
             System.out.println("[ControllerDashboard] Dashboard refreshed successfully");
         } catch (Exception e) {
             System.err.println("[ControllerDashboard] Refresh error: " + e.getMessage());
         }
     }
+
 
 }

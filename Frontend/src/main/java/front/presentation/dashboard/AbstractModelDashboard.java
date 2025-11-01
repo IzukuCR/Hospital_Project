@@ -15,9 +15,6 @@ public abstract class AbstractModelDashboard {
         propertyChangeSupport = new PropertyChangeSupport(this);
     }
 
-    public abstract Map<String, Map<String, Integer>> getMedicinesPrescribedByMonth(Date startDate, Date endDate);
-    public abstract Map<String, Integer> getPrescriptionsByStatus();
-
     public void addPropertyChangeListener(PropertyChangeListener listener) {
         propertyChangeSupport.addPropertyChangeListener(listener);
     }

@@ -205,7 +205,7 @@ public class Application {
     public static void showUserWindow(String userType, String userId) {
         if (currentWindow != null) currentWindow.dispose();
 
-        System.out.println("Loading data for session: " + userId);
+        /*System.out.println("Loading data for session: " + userId);
         doctorController.refresh();
         pharmacistController.refresh();
         patientController.refresh();
@@ -213,7 +213,7 @@ public class Application {
         prescriptionController.refresh();
         historyController.refresh();
         dashboardController.refresh();
-        dispensingController.refresh();
+        dispensingController.refresh();*/
 
         currentWindow = new JFrame();
         currentWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -249,6 +249,7 @@ public class Application {
                 mainPanel.add(tabbedPane, BorderLayout.CENTER);
 
                 currentWindow.setContentPane(mainPanel);
+
             }
 
             case USER_TYPE_DOCTOR -> {

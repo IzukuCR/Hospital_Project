@@ -462,18 +462,15 @@ public class Worker extends Thread {
                     case Protocol.USER_VALIDATE:
                         try {
                             String[] creds = (String[]) syncIs.readObject();
-                            String userType = service.log().validateUserType(creds[0], creds[1]);
-                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
-                            syncOs.writeObject(userType);
+                            this.sessionId = creds[0]; // el userId actúa como sessionId
+                            Server.getActiveUsers().put(this.sessionId, this);
 
-                            // Actualiza el sessionId con el usuario logueado
-                            if (userType != null) {
-                                this.sessionId = creds[0];
-                                Server.getActiveUsers().put(this.sessionId, this);
-                                System.out.println("Session updated for user: " + this.sessionId);
-                            }
+                            System.out.println("Session linked for user: " + this.sessionId);
+                            syncOs.writeInt(Protocol.ERROR_NO_ERROR);
+                            syncOs.writeObject("OK");
                         } catch (Exception ex) {
                             syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.writeObject("Session validation failed: " + ex.getMessage());
                         }
                         break;
 

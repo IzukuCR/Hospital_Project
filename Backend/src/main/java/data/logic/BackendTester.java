@@ -20,11 +20,6 @@ public class BackendTester {
             syncOs.flush();
             ObjectInputStream syncIs = new ObjectInputStream(syncSocket.getInputStream());
 
-            // --- 2) Enviar SessionID ---
-            syncOs.writeObject(sessionId);
-            syncOs.flush();
-            String serverSession = (String) syncIs.readObject();
-            System.out.println("[SYNC] Conectado con SessionID: " + serverSession);
 
             // --- 3) Conexión ASÍNCRONA ---
             Socket asyncSocket = new Socket(Protocol.SERVER, Protocol.PORT_ASYNC);

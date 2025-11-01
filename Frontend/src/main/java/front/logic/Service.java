@@ -52,15 +52,23 @@ public class Service {
                 return;
             }
 
-            this.sessionId = userId; // Actualiza ID de sesión real
+            this.sessionId = userId;
 
-            // Notificar al servidor el nuevo ID
             syncOs.writeInt(Protocol.USER_VALIDATE);
-            syncOs.writeObject(new String[]{userId});
+            syncOs.writeObject(new String[]{userId}); // solo ID
             syncOs.flush();
 
+            // Leer respuesta de confirmación para mantener streams alineados
+            int response = syncIs.readInt();
+            if (response == Protocol.ERROR_NO_ERROR) {
+                String result = (String) syncIs.readObject();
+                System.out.println("Session confirmed by server: " + result);
+            } else {
+                System.err.println("Server rejected session validation");
+            }
+
             System.out.println("Session updated for logged user: " + sessionId);
-        } catch (IOException e) {
+        } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error in connectAfterLogin: " + e.getMessage());
         }
     }
@@ -154,7 +162,7 @@ public class Service {
         private DoctorService() {
         }
 
-        public Doctor create(Doctor d) throws Exception {
+        public synchronized Doctor create(Doctor d) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_CREATE);
             syncOs.writeObject(d);
             syncOs.flush();
@@ -162,7 +170,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Doctor searchByID(String id) throws Exception {
+        public synchronized Doctor searchByID(String id) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_READ_BY_ID);
             syncOs.writeObject(id);
             syncOs.flush();
@@ -170,7 +178,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Doctor> searchByName(String name) throws Exception {
+        public synchronized List<Doctor> searchByName(String name) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_SEARCH_BY_NAME);
             syncOs.writeObject(name);
             syncOs.flush();
@@ -178,7 +186,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Doctor update(Doctor d) throws Exception {
+        public synchronized Doctor update(Doctor d) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_UPDATE);
             syncOs.writeObject(d);
             syncOs.flush();
@@ -186,7 +194,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public boolean delete(Doctor doctor) throws Exception {
+        public synchronized boolean delete(Doctor doctor) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_DELETE);
             syncOs.writeObject(doctor);
             syncOs.flush();
@@ -194,7 +202,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Doctor validateLogin(Doctor doctor) throws Exception {
+        public synchronized Doctor validateLogin(Doctor doctor) throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_VALIDATE_LOGIN);
             syncOs.writeObject(doctor);
             syncOs.flush();
@@ -202,7 +210,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Doctor> getDoctors() throws Exception {
+        public synchronized List<Doctor> getDoctors() throws Exception {
             syncOs.writeInt(Protocol.DOCTOR_GET_ALL);
             syncOs.flush();
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Doctor>) syncIs.readObject();
@@ -215,7 +223,7 @@ public class Service {
         private PharmacistService() {
         }
 
-        public Pharmacist create(Pharmacist ph) throws Exception {
+        public synchronized Pharmacist create(Pharmacist ph) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_CREATE);
             syncOs.writeObject(ph);
             syncOs.flush();
@@ -223,7 +231,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Pharmacist readById(String id) throws Exception {
+        public synchronized Pharmacist readById(String id) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_READ_BY_ID);
             syncOs.writeObject(id);
             syncOs.flush();
@@ -232,7 +240,7 @@ public class Service {
         }
 
 
-        public Pharmacist update(Pharmacist ph) throws Exception {
+        public synchronized Pharmacist update(Pharmacist ph) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_UPDATE);
             syncOs.writeObject(ph);
             syncOs.flush();
@@ -240,7 +248,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public boolean delete(Pharmacist ph) throws Exception {
+        public synchronized boolean delete(Pharmacist ph) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_DELETE);
             syncOs.writeObject(ph);
             syncOs.flush();
@@ -248,7 +256,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Pharmacist validateLogin(Pharmacist pharmacist) throws Exception {
+        public synchronized Pharmacist validateLogin(Pharmacist pharmacist) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_VALIDATE_LOGIN);
             syncOs.writeObject(pharmacist);
             syncOs.flush();
@@ -256,7 +264,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Pharmacist> searchByName(String name) throws Exception {
+        public synchronized List<Pharmacist> searchByName(String name) throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_SEARCH_BY_NAME);
             syncOs.writeObject(name);
             syncOs.flush();
@@ -265,7 +273,7 @@ public class Service {
         }
 
 
-        public List<Pharmacist> getPharmacists() throws Exception {
+        public synchronized List<Pharmacist> getPharmacists() throws Exception {
             syncOs.writeInt(Protocol.PHARMACIST_GET_ALL);
             syncOs.flush();
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Pharmacist>) syncIs.readObject();
@@ -277,7 +285,7 @@ public class Service {
         private PatientService() {
         }
 
-        public Patient create(Patient p) throws Exception {
+        public synchronized Patient create(Patient p) throws Exception {
             syncOs.writeInt(Protocol.PATIENT_CREATE);
             syncOs.writeObject(p);
             syncOs.flush();
@@ -285,7 +293,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Patient readById(String id) throws Exception {
+        public synchronized Patient readById(String id) throws Exception {
             syncOs.writeInt(Protocol.PATIENT_READ_BY_ID);
             syncOs.writeObject(id);
             syncOs.flush();
@@ -293,7 +301,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Patient> searchByName(String name) throws Exception {
+        public synchronized List<Patient> searchByName(String name) throws Exception {
             syncOs.writeInt(Protocol.PATIENT_SEARCH_BY_NAME);
             syncOs.writeObject(name);
             syncOs.flush();
@@ -301,14 +309,14 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Patient> getPatients() throws Exception {
+        public synchronized List<Patient> getPatients() throws Exception {
             syncOs.writeInt(Protocol.PATIENT_GET_ALL);
             syncOs.flush();
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Patient>) syncIs.readObject();
             else throw new Exception();
         }
 
-        public Patient update(Patient p) throws Exception {
+        public synchronized Patient update(Patient p) throws Exception {
             syncOs.writeInt(Protocol.PATIENT_UPDATE);
             syncOs.writeObject(p);
             syncOs.flush();
@@ -316,7 +324,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public boolean delete(Patient patient) throws Exception {
+        public synchronized boolean delete(Patient patient) throws Exception {
             syncOs.writeInt(Protocol.PATIENT_DELETE);
             syncOs.writeObject(patient);
             syncOs.flush();
@@ -331,7 +339,7 @@ public class Service {
         private MedicineService() {
         }
 
-        public Medicine create(Medicine m) throws Exception {
+        public synchronized Medicine create(Medicine m) throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_CREATE);
             syncOs.writeObject(m);
             syncOs.flush();
@@ -339,7 +347,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Medicine readByCode(String code) throws Exception {
+        public synchronized Medicine readByCode(String code) throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_READ_BY_CODE);
             syncOs.writeObject(code);
             syncOs.flush();
@@ -347,7 +355,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Medicine> searchByName(String name) throws Exception {
+        public synchronized List<Medicine> searchByName(String name) throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_SEARCH_BY_NAME);
             syncOs.writeObject(name);
             syncOs.flush();
@@ -355,7 +363,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Medicine update(Medicine m) throws Exception {
+        public synchronized Medicine update(Medicine m) throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_UPDATE);
             syncOs.writeObject(m);
             syncOs.flush();
@@ -363,7 +371,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public boolean delete(String code) throws Exception {
+        public synchronized boolean delete(String code) throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_DELETE);
             syncOs.writeObject(code);
             syncOs.flush();
@@ -371,7 +379,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Medicine> getMedicines() throws Exception {
+        public synchronized List<Medicine> getMedicines() throws Exception {
             syncOs.writeInt(Protocol.MEDICINE_GET_ALL);
             syncOs.flush();
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Medicine>) syncIs.readObject();
@@ -398,7 +406,7 @@ public class Service {
             return null; // User not found or invalid credentials
         }*/
 
-        public String validateUserType(String id, String password) throws Exception {
+        public  String validateUserType(String id, String password) throws Exception {
             try {
                 Doctor doctor = doctorService.searchByID(id);
                 if (doctor != null && doctor.getPassword().equals(password)) {
@@ -424,7 +432,7 @@ public class Service {
         private PrescriptionService() {
         }
 
-        public Prescription create(Prescription p) throws Exception {
+        public synchronized Prescription create(Prescription p) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_CREATE);
             syncOs.writeObject(p);
             syncOs.flush();
@@ -432,7 +440,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Prescription readById(String id) throws Exception {
+        public synchronized Prescription readById(String id) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_READ_BY_ID);
             syncOs.writeObject(id);
             syncOs.flush();
@@ -440,7 +448,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public Prescription update(Prescription p) throws Exception {
+        public synchronized Prescription update(Prescription p) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_UPDATE);
             syncOs.writeObject(p);
             syncOs.flush();
@@ -448,7 +456,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public boolean delete(String id) throws Exception {
+        public synchronized boolean delete(String id) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_DELETE);
             syncOs.writeObject(id);
             syncOs.flush();
@@ -456,14 +464,14 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Prescription> getPrescriptions() throws Exception {
+        public synchronized List<Prescription> getPrescriptions() throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_GET_ALL);
             syncOs.flush();
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR) return (List<Prescription>) syncIs.readObject();
             else throw new Exception();
         }
 
-        public List<Prescription> getPrescriptionsByPatientID(String patientId) throws Exception {
+        public synchronized List<Prescription> getPrescriptionsByPatientID(String patientId) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_PATIENT_ID);
             syncOs.writeObject(patientId);
             syncOs.flush();
@@ -471,7 +479,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Prescription> getPrescriptionsByPatientName(String patientName) throws Exception {
+        public synchronized List<Prescription> getPrescriptionsByPatientName(String patientName) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_PATIENT_NAME);
             syncOs.writeObject(patientName);
             syncOs.flush();
@@ -479,7 +487,7 @@ public class Service {
             else throw new Exception();
         }
 
-        public List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
+        public synchronized List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_DATE);
             syncOs.writeObject(new Object[]{ date, patientId }); 
             syncOs.flush();
@@ -490,7 +498,7 @@ public class Service {
                 throw new Exception();
         }
 
-        public List<Prescription> getPrescriptionsByDoctor(String doctorId) throws Exception {
+        public synchronized List<Prescription> getPrescriptionsByDoctor(String doctorId) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_DOCTOR);
             syncOs.writeObject(doctorId);
             syncOs.flush();
@@ -500,7 +508,7 @@ public class Service {
 
     }
 
-    private void disconnect() throws Exception {
+    private synchronized void disconnect() throws Exception {
         syncOs.writeInt(Protocol.DISCONNECT);
         syncOs.flush();
         syncSocket.shutdownOutput();

@@ -12,6 +12,7 @@ import java.beans.PropertyChangeListener;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.time.ZoneId;
 
 public class ViewDashboard extends JPanel implements PropertyChangeListener {
     private JPanel mainPanel;
@@ -39,7 +40,7 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
         setLayout(new BorderLayout());
         add(mainPanel, BorderLayout.CENTER);
 
-        // Verificar que todos los componentes existan
+        // === Validación de componentes ===
         if (selectedMedicinesList == null) {
             System.err.println("ERROR: selectedMedicinesList is null");
             selectedMedicinesList = new JList<>();
@@ -48,34 +49,64 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
         medicinesListModel = new DefaultListModel<>();
         selectedMedicinesList.setModel(medicinesListModel);
 
-        // Configurar fechas predeterminadas con validación
+        // === Fechas predeterminadas con validación coherente ===
         try {
             Calendar cal = Calendar.getInstance();
+
+            // Fecha final → hoy
             if (endDatePicker != null) {
                 endDatePicker.setDate(cal.getTime().toInstant()
-                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate());
             } else {
                 System.err.println("ERROR: endDatePicker is null");
             }
 
+            // Fecha inicial → 6 meses atrás
             cal.add(Calendar.MONTH, -6);
             if (startDatePicker != null) {
                 startDatePicker.setDate(cal.getTime().toInstant()
-                        .atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+                        .atZone(java.time.ZoneId.systemDefault())
+                        .toLocalDate());
             } else {
                 System.err.println("ERROR: startDatePicker is null");
             }
+
+            // Validar coherencia automática de rango (si se manipula manualmente)
+            if (startDatePicker != null && endDatePicker != null) {
+                startDatePicker.addDateChangeListener(e -> {
+                    if (startDatePicker.getDate().isAfter(endDatePicker.getDate())) {
+                        JOptionPane.showMessageDialog(this,
+                                "La fecha de inicio no puede ser posterior a la fecha final.",
+                                "Fecha inválida",
+                                JOptionPane.WARNING_MESSAGE);
+                        startDatePicker.setDate(endDatePicker.getDate().minusMonths(1));
+                    }
+                });
+
+                endDatePicker.addDateChangeListener(e -> {
+                    if (endDatePicker.getDate().isBefore(startDatePicker.getDate())) {
+                        JOptionPane.showMessageDialog(this,
+                                "La fecha final no puede ser anterior a la fecha de inicio.",
+                                "Fecha inválida",
+                                JOptionPane.WARNING_MESSAGE);
+                        endDatePicker.setDate(startDatePicker.getDate().plusMonths(1));
+                    }
+                });
+            }
+
         } catch (Exception e) {
             System.err.println("Error configuring dates: " + e.getMessage());
             e.printStackTrace();
         }
 
-        // Validar que los botones existan antes de añadir listeners
+        // === Listeners de botones ===
         if (addMedicineButton != null) {
             addMedicineButton.addActionListener(e -> {
                 String selectedMedicine = (String) medicinesComboBox.getSelectedItem();
                 if (selectedMedicine != null && !selectedMedicine.isEmpty()
-                        && !medicinesListModel.contains(selectedMedicine)) {
+                        && !medicinesListModel.contains(selectedMedicine)
+                        && !"No medicines available".equals(selectedMedicine)) {
                     medicinesListModel.addElement(selectedMedicine);
                 }
             });
@@ -104,118 +135,62 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
     public void generateCharts() {
         try {
             if (medicinesListModel.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                        "Please select at least one medicine.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Select at least one medicine.", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            if (startDatePicker.getDate() == null || endDatePicker.getDate() == null) {
-                JOptionPane.showMessageDialog(this,
-                        "Please select valid dates.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            Date startDate = Date.from(startDatePicker.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
+            Date endDate = Date.from(endDatePicker.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
 
-            Date startDate = Date.from(startDatePicker.getDate().atStartOfDay()
-                    .atZone(java.time.ZoneId.systemDefault()).toInstant());
-            Date endDate = Date.from(endDatePicker.getDate().atStartOfDay()
-                    .atZone(java.time.ZoneId.systemDefault()).toInstant());
+            String[] selectedMeds = getSelectedMedicines();
 
-            if (startDate.after(endDate)) {
-                JOptionPane.showMessageDialog(this,
-                        "Start date must be before end date.",
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            JFreeChart lineChart = controller.createMedicineLineChart(startDate, endDate, selectedMeds);
+            JFreeChart pieChart = controller.createStatusPieChart();
 
-            // Generar datos en el modelo (esto dispara los PropertyChangeEvents)
-            model.getMedicinesPrescribedByMonth(startDate, endDate);
-            model.getPrescriptionsByStatus();
+            // Update line chart
+            chartPanel.removeAll();
+            chartPanel.add(new ChartPanel(lineChart), BorderLayout.CENTER);
+            chartPanel.revalidate();
+            chartPanel.repaint();
+
+            // Update pie chart
+            pieChartPanel.removeAll();
+            pieChartPanel.add(new ChartPanel(pieChart), BorderLayout.CENTER);
+            pieChartPanel.revalidate();
+            pieChartPanel.repaint();
 
         } catch (Exception e) {
             System.err.println("Error generating charts: " + e.getMessage());
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Error generating charts: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Error generating charts: " + e.getMessage());
         }
     }
 
     private String[] getSelectedMedicines() {
-        String[] selectedMedicines = new String[medicinesListModel.size()];
+        String[] selected = new String[medicinesListModel.size()];
         for (int i = 0; i < medicinesListModel.size(); i++) {
-            selectedMedicines[i] = medicinesListModel.get(i);
+            selected[i] = medicinesListModel.get(i);
         }
-        return selectedMedicines;
+        return selected;
     }
 
-    public void loadMedicinesList() {
-        try {
-            medicinesComboBox.removeAllItems();
-
-            List<Medicine> medicines = controller.getAllMedicines();
-
-            if (medicines == null || medicines.isEmpty()) {
-                System.err.println(" No medicines found in database");
-                medicinesComboBox.addItem("No medicines available");
-                return;
-            }
-
-            System.out.println(" Loaded " + medicines.size() + " medicines");
-            for (Medicine medicine : medicines) {
-                medicinesComboBox.addItem(medicine.getName());
-                System.out.println("  - Added: " + medicine.getName());
-            }
-        } catch (Exception e) {
-            System.err.println(" Error loading medicines: " + e.getMessage());
-            e.printStackTrace();
-            medicinesComboBox.addItem("Error loading medicines");
-        }
-    }
-
+    @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        if (AbstractModelDashboard.MEDICINE_DATA.equals(evt.getPropertyName())) {
-            // Get selected medicines
-            String[] selectedMeds = getSelectedMedicines();
-
-            // Convert LocalDate to Date for the controller
-            Date startDate = Date.from(startDatePicker.getDate().atStartOfDay()
-                    .atZone(java.time.ZoneId.systemDefault()).toInstant());
-            Date endDate = Date.from(endDatePicker.getDate().atStartOfDay()
-                    .atZone(java.time.ZoneId.systemDefault()).toInstant());
-
-            // Create medicine line chart
-            JFreeChart lineChart = controller.createMedicineLineChart(startDate, endDate, selectedMeds);
-
-            // Update the chart panel
-            chartPanel.removeAll();
-            ChartPanel medicineChartPanel = new ChartPanel(lineChart);
-            medicineChartPanel.setPreferredSize(new Dimension(600, 400));
-            chartPanel.add(medicineChartPanel, BorderLayout.CENTER);
-            chartPanel.revalidate();
-            chartPanel.repaint();
-        }
-        else if (AbstractModelDashboard.PRESCRIPTION_STATUS.equals(evt.getPropertyName())) {
-
-            JFreeChart pieChart = controller.createStatusPieChart();
-
-            pieChartPanel.removeAll();
-            ChartPanel statusChartPanel = new ChartPanel(pieChart);
-            statusChartPanel.setPreferredSize(new Dimension(400, 400));
-            pieChartPanel.add(statusChartPanel, BorderLayout.CENTER);
-            pieChartPanel.revalidate();
-            pieChartPanel.repaint();
+        switch (evt.getPropertyName()) {
+            case ModelDashboard.MEDICINES_LIST -> {
+                List<Medicine> updatedList = (List<Medicine>) evt.getNewValue();
+                medicinesComboBox.removeAllItems();
+                if (updatedList == null || updatedList.isEmpty()) {
+                    medicinesComboBox.addItem("No medicines available");
+                } else {
+                    updatedList.forEach(m -> medicinesComboBox.addItem(m.getName()));
+                }
+                System.out.println("[ViewDashboard] Medicines combo updated.");
+            }
         }
     }
 
     public void setControllerDashboard(ControllerDashboard controller) {
         this.controller = controller;
-        loadMedicinesList();
     }
 
     public void setModelDashboard(AbstractModelDashboard model) {
