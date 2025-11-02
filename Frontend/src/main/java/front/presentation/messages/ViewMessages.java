@@ -2,10 +2,11 @@ package front.presentation.messages;
 
 import logic.Message;
 import javax.swing.*;
-import java.awt.*;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
+import java.util.List;
+import java.awt.*;
 
 public class ViewMessages extends JPanel implements PropertyChangeListener {
     private JTextArea chatArea;
@@ -22,18 +23,10 @@ public class ViewMessages extends JPanel implements PropertyChangeListener {
 
     public ViewMessages() {
         setLayout(new BorderLayout());
-        chatArea = new JTextArea();
-        chatArea.setEditable(false);
-        chatArea.setLineWrap(true);
-        chatArea.setWrapStyleWord(true);
-        scrollPane = new JScrollPane(chatArea);
-        add(scrollPane, BorderLayout.CENTER);
+        add(panel1, BorderLayout.CENTER);
 
         tableModel = new TableModelMessages(new ArrayList<>());
-        UsersActives = new JTable(tableModel);
-        JScrollPane leftScroll = new JScrollPane(UsersActives);
-        leftScroll.setPreferredSize(new Dimension(200, 0));
-        add(leftScroll, BorderLayout.WEST);
+        UsersActives.setModel(tableModel);
     }
 
     public void setController(ControllerMessages controller) {
@@ -53,6 +46,12 @@ public class ViewMessages extends JPanel implements PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-
+        switch (evt.getPropertyName()) {
+            case "messages" -> refreshMessages();
+            case "activeUsers" -> {
+                List<String> users = (List<String>) evt.getNewValue();
+                tableModel.setUsers(users);
+            }
+        }
     }
 }

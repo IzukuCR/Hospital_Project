@@ -896,12 +896,18 @@ public class ViewPrescription implements PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-        if (ModelPrescription.CURRENT.equals(evt.getPropertyName())) {
-            Prescription current = (Prescription) evt.getNewValue();
-            if (current != null && current.getId() != null && !current.getId().equals(idFld.getText())) {
-                SwingUtilities.invokeLater(() -> {
-                    displayPrescription(current);
-                });
+        switch (evt.getPropertyName()) {
+            case ModelPrescription.CURRENT -> {
+                Object newValue = evt.getNewValue();
+                if (newValue instanceof Prescription current) {
+                    SwingUtilities.invokeLater(() -> displayPrescription(current));
+                }
+            }
+            case ModelPrescription.DOCTOR -> {
+                Object newValue = evt.getNewValue();
+                if (newValue instanceof Doctor doctor) {
+                    SwingUtilities.invokeLater(() -> setDoctor(doctor));
+                }
             }
         }
     }

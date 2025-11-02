@@ -3,70 +3,56 @@ package front.logic;
 import front.presentation.AsyncListener;
 
 import javax.swing.*;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.net.Socket;
 
-public class SocketListener extends Thread{
+public class SocketListener extends Thread {
 
     private final Socket asyncSocket;
-    private final AsyncListener listener;
+    private final ObjectInputStream input;
+    private volatile AsyncListener listener;
     private volatile boolean running = false;
-    private ObjectInputStream input;
 
-    public SocketListener(Socket asyncSocket, AsyncListener listener) {
-        super("SocketListener-");
+    public SocketListener(Socket asyncSocket, ObjectInputStream input, AsyncListener listener) {
+        super("SocketListener-" + asyncSocket.getPort());
         this.asyncSocket = asyncSocket;
+        this.input = input;
         this.listener = listener;
-
     }
 
     @Override
     public void run() {
         running = true;
-        try (Socket s = asyncSocket) {
-            try {
-                input = new ObjectInputStream(s.getInputStream());
-            } catch (IOException e) {
-                System.err.println("[SocketListener] Error creando input stream: " + e.getMessage());
-                return;
-            }
+        System.out.println("[SocketListener] Listening on " + asyncSocket.getPort());
 
-            while (running) {
-                try {
-                    Object obj = input.readObject();
-                    if (obj != null && listener != null) {
-                        SwingUtilities.invokeLater(() ->listener.onAsyncNotification(obj));
-                    }
-                } catch (IOException e) {
-                    if (running) {
-                        System.err.println("SocketListener I/O error: " + e.getMessage());
-                    }
-                    break;
-                } catch (ClassNotFoundException e) {
-                    System.err.println("SocketListener received unknown object: " + e.getMessage());
+        try {
+            while (running && !asyncSocket.isClosed()) {
+                Object obj = input.readObject();
+                AsyncListener l = this.listener;
+                if (l != null) {
+                    SwingUtilities.invokeLater(() -> l.onAsyncNotification(obj));
                 }
             }
-        } catch (Exception ex) {
-            System.err.println("SocketListener terminated: " + ex.getMessage());
+        } catch (EOFException e) {
+            System.err.println("[SocketListener] EOF reached, socket closed.");
+        } catch (IOException e) {
+            if (running) System.err.println("[SocketListener] I/O error: " + e.getMessage());
+        } catch (ClassNotFoundException e) {
+            System.err.println("[SocketListener] Unknown object: " + e.getMessage());
         } finally {
-            stopListening();
+
+            System.out.println("[SocketListener] stopped.");
         }
     }
 
     public void stopListening() {
         running = false;
-        try {
-            if (input != null) input.close();
-        } catch (IOException e) {
-            System.err.println("Error closing async input stream: " + e.getMessage());
-        }
-        try {
-            if (asyncSocket != null && !asyncSocket.isClosed()) asyncSocket.close();
-        } catch (IOException e) {
-            System.err.println("Error closing async socket: " + e.getMessage());
-        }
-        System.out.println("SocketListener stopped.");
+
     }
 
+    public void setListener(AsyncListener listener) {
+        this.listener = listener;
+    }
 }

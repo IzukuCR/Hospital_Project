@@ -27,6 +27,7 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
     private DatePicker startDatePicker;
     private DatePicker endDatePicker;
     private JButton removeButton;
+    private JButton clearGraphs;
     private String currentUserId;
 
     private AbstractModelDashboard model;
@@ -130,6 +131,25 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
         } else {
             System.err.println("ERROR: generateButton is null");
         }
+
+        if (clearGraphs != null) {
+            clearGraphs.addActionListener(e -> {
+                // Limpiar gráficos
+                chartPanel.removeAll();
+                pieChartPanel.removeAll();
+                chartPanel.revalidate();
+                chartPanel.repaint();
+                pieChartPanel.revalidate();
+                pieChartPanel.repaint();
+
+                // Limpiar lista de medicamentos seleccionados
+                medicinesListModel.clear();
+
+                JOptionPane.showMessageDialog(this, "Charts and medicine list cleared.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            });
+        } else {
+            System.err.println("ERROR: clearGraphs button is null");
+        }
     }
 
     public void generateCharts() {
@@ -141,19 +161,21 @@ public class ViewDashboard extends JPanel implements PropertyChangeListener {
 
             Date startDate = Date.from(startDatePicker.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
             Date endDate = Date.from(endDatePicker.getDate().atStartOfDay(ZoneId.systemDefault()).toInstant());
-
             String[] selectedMeds = getSelectedMedicines();
 
+            // 🔹 Actualizar datos del modelo según fechas
+            controller.updateDashboardData(startDate, endDate);
+
+            // 🔹 Crear gráficos con datos actualizados
             JFreeChart lineChart = controller.createMedicineLineChart(startDate, endDate, selectedMeds);
             JFreeChart pieChart = controller.createStatusPieChart();
 
-            // Update line chart
+            // 🔹 Mostrar los gráficos
             chartPanel.removeAll();
             chartPanel.add(new ChartPanel(lineChart), BorderLayout.CENTER);
             chartPanel.revalidate();
             chartPanel.repaint();
 
-            // Update pie chart
             pieChartPanel.removeAll();
             pieChartPanel.add(new ChartPanel(pieChart), BorderLayout.CENTER);
             pieChartPanel.revalidate();

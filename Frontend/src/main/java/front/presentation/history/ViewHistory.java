@@ -110,29 +110,29 @@ public class ViewHistory implements PropertyChangeListener {
             }
 
             String searchType = (String) searchComboBox.getSelectedItem();
-            List<Prescription> results;
 
             if (SEARCH_BY_PATIENT_ID.equals(searchType)) {
-                results = controllerHistory.searchByPatient(searchText);
+                controllerHistory.searchByPatient(searchText);
             } else if (SEARCH_BY_DOCTOR_ID.equals(searchType)) {
-                results = controllerHistory.searchByDoctorId(searchText);
-            } else {
-                results = new ArrayList<>();
+                controllerHistory.searchByDoctorId(searchText);
             }
 
-            if (results.isEmpty()) {
-                JOptionPane.showMessageDialog(panel, "No prescriptions found", "Info", JOptionPane.INFORMATION_MESSAGE);
-            }
-
-            historyTableModel.setRows(results);
         } catch (Exception ex) {
             JOptionPane.showMessageDialog(panel, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void handleListAll() {
-
-        historyTableModel.setRows(modelHistory.getPrescriptions());
+        new Thread(() -> {
+            try {
+                var prescriptions = controllerHistory.getAllPrescriptions();
+                SwingUtilities.invokeLater(() -> historyTableModel.setRows(prescriptions));
+            } catch (Exception e) {
+                System.err.println("[ViewHistory] Error loading all prescriptions: " + e.getMessage());
+                SwingUtilities.invokeLater(() -> historyTableModel.setRows(new ArrayList<>()));
+            }
+        }, "History-ListAll").start();
+        //historyTableModel.setRows(modelHistory.getPrescriptions());
     }
 
     private void displayPrescriptionDetails(Prescription prescription) {
@@ -196,7 +196,11 @@ public class ViewHistory implements PropertyChangeListener {
 
     @Override
     public void propertyChange(PropertyChangeEvent evt) {
-
+        if (ModelHistory.LIST.equals(evt.getPropertyName())) {
+            @SuppressWarnings("unchecked")
+            List<Prescription> updatedList = (List<Prescription>) evt.getNewValue();
+            historyTableModel.setRows(updatedList);
+        }
     }
 
 }

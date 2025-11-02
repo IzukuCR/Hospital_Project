@@ -68,4 +68,22 @@ public class Server {
     public static Map<String, Worker> getActiveUsers() {
         return activeUsers;
     }
+
+    public void broadcastActiveUsers() {
+        try {
+            List<String> activeUserIds = new ArrayList<>(getActiveUsers().keySet());
+            for (Worker w : getActiveUsers().values()) {
+                try {
+                    System.out.println("[DEBUG] Broadcasting to " + getActiveUsers().size() + " clients.");
+                    w.sendActiveUsers(activeUserIds);
+                } catch (Exception e) {
+                    System.err.println("Error sending active users to " + w.getSessionId() + ": " + e.getMessage());
+                }
+            }
+            System.out.println("[SERVER] Active users broadcast: " + activeUserIds);
+        } catch (Exception e) {
+            System.err.println("[SERVER] Failed to broadcast active users: " + e.getMessage());
+        }
+    }
+
 }

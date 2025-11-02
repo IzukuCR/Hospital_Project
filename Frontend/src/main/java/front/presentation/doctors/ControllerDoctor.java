@@ -17,7 +17,7 @@ public class ControllerDoctor implements ThreadListener {
         this.view = view;
         this.model = model;
         this.service = Service.instance();
-        //loadDoctors();
+
         //new Thread(this::loadDoctorsSafe, "Doctor-Init-Thread").start();
         view.setControllerDoc(this);
         view.setModelDoc(model);
@@ -45,14 +45,6 @@ public class ControllerDoctor implements ThreadListener {
                 System.err.println("[ControllerDoctor] Error creando doctor: " + e.getMessage());
             }
         }, "Doctor-Create").start();
-    }
-
-    private void loadDoctors() {
-        try {
-            model.setDoctors(service.doctor().getDoctors());
-        } catch (Exception e) {
-            System.err.println("Error loading doctors: " + e.getMessage());
-        }
     }
 
     /*public void create(Doctor p) throws Exception {

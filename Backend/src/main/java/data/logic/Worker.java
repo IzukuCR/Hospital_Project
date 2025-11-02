@@ -97,9 +97,20 @@ public class Worker extends Thread {
         }
     }
 
+    public void sendActiveUsers(List<String> users) {
+        try {
+            asyncOs.writeObject(users);
+            asyncOs.flush();
+            System.out.println("[ASYNC] Sent active users list to " + sessionId + ": " + users);
+        } catch (IOException e) {
+            System.err.println("Error sending active users to " + sessionId + ": " + e.getMessage());
+        }
+    }
+
     public void stopWorker() {
         running = false;
         server.remove(sessionId);
+        server.broadcastActiveUsers();
         try { if (syncOs != null) syncOs.close(); } catch (IOException ignored) {}
         try { if (syncIs != null) syncIs.close(); } catch (IOException ignored) {}
         try { if (asyncOs != null) asyncOs.close(); } catch (IOException ignored) {}
@@ -461,6 +472,7 @@ public class Worker extends Thread {
 
                     case Protocol.USER_VALIDATE:
                         try {
+                            Server.getActiveUsers().remove(this.sessionId); // eliminar el anterior si existía
                             String[] creds = (String[]) syncIs.readObject();
                             this.sessionId = creds[0]; // el userId actúa como sessionId
                             Server.getActiveUsers().put(this.sessionId, this);
@@ -468,9 +480,15 @@ public class Worker extends Thread {
                             System.out.println("Session linked for user: " + this.sessionId);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject("OK");
+
+                            syncOs.flush();
+                            System.out.println("[DEBUG] Broadcasting active users after login: " + this.sessionId);
+
+                            server.broadcastActiveUsers();
                         } catch (Exception ex) {
                             syncOs.writeInt(Protocol.ERROR_ERROR);
                             syncOs.writeObject("Session validation failed: " + ex.getMessage());
+                            syncOs.flush();
                         }
                         break;
 

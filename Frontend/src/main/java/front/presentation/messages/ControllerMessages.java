@@ -8,6 +8,8 @@ import logic.Message;
 import javax.swing.*;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ControllerMessages implements AsyncListener {
     private ModelMessages model;
@@ -20,6 +22,9 @@ public class ControllerMessages implements AsyncListener {
         this.view = view;
         this.service = Service.instance();
         this.view.setController(this);
+        this.model.addPropertyChangeListener(view);
+
+        this.service.setAsyncListener(this);
     }
 
     public void setUser(String userId) {
@@ -28,45 +33,40 @@ public class ControllerMessages implements AsyncListener {
 
     @Override
     public void onAsyncNotification(Object obj) {
-        // Ensure any UI updates run on EDT
         if (obj instanceof Message msg) {
-            SwingUtilities.invokeLater(() -> onMessageReceived(msg));
-        }
-    }
+            System.out.println("[ASYNC CLIENT] Message received: " + msg.getSender() + " → " + msg.getReceiver());
+            SwingUtilities.invokeLater(() -> model.addMessage(msg));
 
-    public void attachAsyncSocket(Socket asyncSocket) throws IOException {
-        if (socketListener != null) {
-            socketListener.stopListening();
-        }
-
-        socketListener = new SocketListener(asyncSocket, new AsyncListener() {
-            @Override
-            public void onAsyncNotification(Object obj) {
-                if (obj instanceof Message msg) {
-                    // Mostrar mensaje en la vista
-                    view.appendMessage(msg);
-                    System.out.println("[ASYNC] New message from " + msg.getSender() +
-                            " → " + msg.getReceiver() + ": " + msg.getContent());
-                } else {
-                    System.out.println("[ASYNC] Unknown async object: " + obj);
+        } else if (obj instanceof List<?> users) {
+            // 🔹 Lista de usuarios activos enviada por el servidor
+            List<String> connectedUsers = new ArrayList<>();
+            for (Object u : users) {
+                if (u instanceof String id && !id.equals(model.getCurrentUserId())) {
+                    connectedUsers.add(id);
                 }
             }
-        });
+            SwingUtilities.invokeLater(() -> model.setActiveUsers(connectedUsers));
+            System.out.println("[ASYNC CLIENT] Active users updated: " + connectedUsers);
 
-        socketListener.start(); // arranca el hilo que escucha notificaciones
+        } else {
+            System.out.println("[ASYNC CLIENT] Unknown async object: " + obj);
+        }
     }
+
     public void onMessageReceived(Message msg) {
         model.addMessage(msg);              // se agrega al modelo
         view.refreshMessages();             // se actualiza la vista
         System.out.println("Message received from " + msg.getSender());
     }
 
-
     public void sendMessage(String receiverId, String content) {
-        Message msg = new Message(model.getCurrentUserId(), receiverId, content);
-
-        //model.getService().sendMessage(msg);
-        model.addMessage(msg);              // opcional: mostrar también los mensajes enviados
-        view.refreshMessages();
+        try {
+            Message msg = new Message(model.getCurrentUserId(), receiverId, content);
+            service.sendMessage(msg);
+            model.addMessage(msg);
+            view.refreshMessages();
+        } catch (IOException e) {
+            System.err.println("[ControllerMessages] Error sending message: " + e.getMessage());
+        }
     }
 }

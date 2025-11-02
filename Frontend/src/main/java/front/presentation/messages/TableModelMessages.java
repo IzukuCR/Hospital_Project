@@ -1,103 +1,95 @@
 package front.presentation.messages;
 
 import front.presentation.table_models.AbstractTableModel;
+import logic.Message;
 
 import java.util.ArrayList;
 import java.util.List;
-import logic.Message;
 
+public class TableModelMessages extends javax.swing.table.AbstractTableModel{
 
-public class TableModelMessages extends AbstractTableModel<Message> implements javax.swing.table.TableModel {
-    public TableModelMessages(int[] cols, List<Message> rows) {
-        super(cols, rows);
-        initFlags();
+    private final String[] colNames = { "Id", "Messages?" };
+    private final List<String> users = new ArrayList<>();
+    private final List<Boolean> hasMessagesFlags = new ArrayList<>();
+
+    public TableModelMessages(List<String> initialUsers) {
+        if (initialUsers != null) setUsers(initialUsers);
     }
 
-    public static final int ID = 0;
-    public static final int HAS_MESSAGES = 1;
-
-    private List<Boolean> hasMessagesFlags = new ArrayList<>();
-
-    public TableModelMessages(List<Message> rows) {
-        this(new int[]{ ID, HAS_MESSAGES }, rows);
-        initFlags();
-    }
-
-    @Override
-    protected void initColNames() {
-        colNames = new String[2];
-        colNames[ID] = "Id";
-        colNames[HAS_MESSAGES] = "Messages?";
-    }
-
-    private void initFlags() {
+    public void setUsers(List<String> newUsers) {
+        users.clear();
         hasMessagesFlags.clear();
-        if (rows != null) {
-            for (Message m : rows) {
-                boolean has = false;
-                try {
-                    // default heuristic: consider a message present if content is non-empty
-                    Object content = m.getContent();
-                    has = content != null && !content.toString().trim().isEmpty();
-                } catch (Exception ex) {
-                    has = false;
-                }
-                hasMessagesFlags.add(has);
+
+        if (newUsers != null) {
+            users.addAll(newUsers);
+            // Por defecto todos sin mensajes
+            for (int i = 0; i < newUsers.size(); i++) {
+                hasMessagesFlags.add(Boolean.FALSE);
             }
         }
-    }
-
-    public void setRows(List<Message> newRows) {
-        this.rows = newRows;
-        initFlags();
         fireTableDataChanged();
     }
 
-    @Override
-    protected Object getPropetyAt(Message message, int col) {
-        int realCol = cols[col];
-        switch (realCol) {
-            case ID:
-                // show sender or some identifier
-                return message.getSender();
-            case HAS_MESSAGES:
-                int idx = rows.indexOf(message);
-                return (idx >= 0 && idx < hasMessagesFlags.size()) ? hasMessagesFlags.get(idx) : Boolean.FALSE;
-            default:
-                return "";
+    public void setUserHasMessage(String userId, boolean hasMessage) {
+        int idx = users.indexOf(userId);
+        if (idx != -1) {
+            hasMessagesFlags.set(idx, hasMessage);
+            fireTableCellUpdated(idx, 1);
         }
     }
 
-    @Override
-    public Class<?> getColumnClass(int columnIndex) {
-        int realCol = cols[columnIndex];
-        switch (realCol) {
-            case ID:
-                return String.class;
-            case HAS_MESSAGES:
-                return Boolean.class;
-            default:
-                return Object.class;
+    public String getUserAt(int rowIndex) {
+        if (rowIndex >= 0 && rowIndex < users.size()) {
+            return users.get(rowIndex);
         }
+        return null;
+    }
+
+
+    @Override
+    public int getRowCount() {
+        return users.size();
+    }
+
+    @Override
+    public int getColumnCount() {
+        return colNames.length;
+    }
+
+    @Override
+    public String getColumnName(int column) {
+        return colNames[column];
+    }
+
+    @Override
+    public Object getValueAt(int rowIndex, int columnIndex) {
+        return switch (columnIndex) {
+            case 0 -> users.get(rowIndex);
+            case 1 -> hasMessagesFlags.get(rowIndex);
+            default -> null;
+        };
     }
 
     @Override
     public boolean isCellEditable(int rowIndex, int columnIndex) {
-        int realCol = cols[columnIndex];
-        return realCol == HAS_MESSAGES;
+        // Solo la columna de "Messages?" debe ser editable
+        return columnIndex == 1;
     }
 
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-        int realCol = cols[columnIndex];
-        if (realCol == HAS_MESSAGES && rowIndex >= 0 && rowIndex < hasMessagesFlags.size()) {
+        if (columnIndex == 1 && rowIndex >= 0 && rowIndex < hasMessagesFlags.size()) {
             hasMessagesFlags.set(rowIndex, Boolean.TRUE.equals(aValue));
             fireTableCellUpdated(rowIndex, columnIndex);
         }
     }
 
     @Override
-    public int getColumnCount() {
-        return colNames != null ? colNames.length : 2;
+    public Class<?> getColumnClass(int columnIndex) {
+        return switch (columnIndex) {
+            case 0 -> String.class;
+            case 1 -> Boolean.class;
+            default -> Object.class;
+        };
     }
 }

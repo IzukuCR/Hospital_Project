@@ -19,7 +19,7 @@ public class ControllerMedicine implements ThreadListener {
         this.model = model;
         this.service = Service.instance();
 
-        //loadMedicines();
+
         view.setControllerMed(this);
         view.setModelMed(model);
 
@@ -32,15 +32,6 @@ public class ControllerMedicine implements ThreadListener {
             SwingUtilities.invokeLater(() -> model.setMedicines(medicines));
         } catch (Exception e) {
             System.err.println("[ControllerMedicine] Error loading medicines: " + e.getMessage());
-        }
-    }
-
-    private void loadMedicines() {
-        try{
-            List<Medicine> medicines = service.medicine().getMedicines();
-            this.model.setMedicines(medicines);
-        }catch(Exception e){
-            System.out.println("Error loading Medicines");
         }
     }
 

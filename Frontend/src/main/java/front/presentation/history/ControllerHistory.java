@@ -48,11 +48,12 @@ public class ControllerHistory implements ThreadListener {
         }
     }*/
 
-    public List<Prescription> searchByPatient(String patientIdOrName) {
+    public void searchByPatient(String patientIdOrName) {
         if (patientIdOrName == null || patientIdOrName.isBlank()) {
             System.err.println("[ControllerHistory] Empty search term");
-            return new ArrayList<>();
+            return;
         }
+
         new Thread(() -> {
             try {
                 var prescriptions = service.prescription().getPrescriptionsByPatientID(patientIdOrName);
@@ -62,7 +63,6 @@ public class ControllerHistory implements ThreadListener {
                 SwingUtilities.invokeLater(() -> model.setPrescriptions(new ArrayList<>()));
             }
         }, "History-SearchByPatient").start();
-        return model.getPrescriptions();
     }
 
     /*public List<Prescription> searchByDoctorId(String doctorId) {
@@ -88,7 +88,7 @@ public class ControllerHistory implements ThreadListener {
         return model.getPrescriptions();
     }
 
-    /*public List<Prescription> getAllPrescriptions() {
+    public List<Prescription> getAllPrescriptions() {
         try{
             return service.prescription().getPrescriptions();
         } catch (Exception e) {
@@ -98,7 +98,7 @@ public class ControllerHistory implements ThreadListener {
 
     }
 
-    public void getAllPrescriptions() {
+    /*public void getAllPrescriptions() {
         new Thread(() -> {
             try {
                 var prescriptions = service.prescription().getPrescriptions();
@@ -108,7 +108,7 @@ public class ControllerHistory implements ThreadListener {
                 SwingUtilities.invokeLater(() -> model.setPrescriptions(new ArrayList<>()));
             }
         }, "History-GetAll").start();
-    }
+    }*/
 
     public Prescription getPrescriptionById(String id) {
         try{
@@ -117,7 +117,7 @@ public class ControllerHistory implements ThreadListener {
             System.err.println("Error searching prescriptions: " + e.getMessage());
             return new Prescription();
         }
-    }*/
+    }
 
     public Patient getPatientById(String id) throws Exception {
         return Service.instance().patient().readById(id);

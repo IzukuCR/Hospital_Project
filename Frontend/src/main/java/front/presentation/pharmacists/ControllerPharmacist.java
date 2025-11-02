@@ -33,14 +33,6 @@ public class ControllerPharmacist implements ThreadListener {
         }
     }
 
-    private void loadPharmacists() {
-        try {
-            model.setPharmacists(service.pharmacist().getPharmacists());
-        } catch (Exception e) {
-            System.err.println("Error loading pharmacists: " + e.getMessage());
-        }
-    }
-
     /*public void create(Pharmacist p) throws Exception {
         Pharmacist createdPharmacist = service.pharmacist().create(p);
         loadPharmacists();

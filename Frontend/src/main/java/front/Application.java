@@ -205,16 +205,6 @@ public class Application {
     public static void showUserWindow(String userType, String userId) {
         if (currentWindow != null) currentWindow.dispose();
 
-        /*System.out.println("Loading data for session: " + userId);
-        doctorController.refresh();
-        pharmacistController.refresh();
-        patientController.refresh();
-        medicineController.refresh();
-        prescriptionController.refresh();
-        historyController.refresh();
-        dashboardController.refresh();
-        dispensingController.refresh();*/
-
         currentWindow = new JFrame();
         currentWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         currentWindow.setSize(1000, 700);
@@ -245,11 +235,23 @@ public class Application {
                 tabbedPane.addTab("Info", new ImageIcon(Application.class.getResource("/icons/hospital.png")), infoWindow);
 
                 JPanel mainPanel = new JPanel(new BorderLayout());
+
+                // barra lateral izquierda (amarilla)
                 mainPanel.add(toolBar, BorderLayout.WEST);
+
+                // panel de pestañas central
                 mainPanel.add(tabbedPane, BorderLayout.CENTER);
+
+                // panel de mensajes a la derecha
+                messagesView.setPreferredSize(new Dimension(230, 0));
+                mainPanel.add(messagesView, BorderLayout.EAST);
 
                 currentWindow.setContentPane(mainPanel);
 
+                // opcional: setea el userId actual en el controlador de mensajes
+                messagesController.setUser(userId);
+
+                dashboardController.refresh();
             }
 
             case USER_TYPE_DOCTOR -> {
@@ -260,7 +262,15 @@ public class Application {
                 tabbedPane1.addTab("History", new ImageIcon(Application.class.getResource("/icons/history.png")), historyView.getPanel());
                 tabbedPane1.addTab("Dashboard", new ImageIcon(Application.class.getResource("/icons/data.png")), dashboardView.getPanel());
                 tabbedPane1.addTab("Info", new ImageIcon(Application.class.getResource("/icons/hospital.png")), infoWindow);
-                currentWindow.setContentPane(tabbedPane1);
+
+                JPanel mainPanel = new JPanel(new BorderLayout());
+                mainPanel.add(tabbedPane1, BorderLayout.CENTER);
+
+                messagesView.setPreferredSize(new Dimension(230, 0));
+                mainPanel.add(messagesView, BorderLayout.EAST);
+
+                currentWindow.setContentPane(mainPanel);
+                messagesController.setUser(userId);
             }
 
             case USER_TYPE_PHARMACIST -> {
@@ -271,7 +281,20 @@ public class Application {
                 tabbedPane2.addTab("History", new ImageIcon(Application.class.getResource("/icons/history.png")), historyView.getPanel());
                 tabbedPane2.addTab("Dashboard", new ImageIcon(Application.class.getResource("/icons/data.png")), dashboardView.getPanel());
                 tabbedPane2.addTab("Info", new ImageIcon(Application.class.getResource("/icons/hospital.png")), infoWindow);
-                currentWindow.setContentPane(tabbedPane2);
+
+
+                JPanel mainPanel = new JPanel(new BorderLayout());
+                mainPanel.add(tabbedPane2, BorderLayout.CENTER);
+
+                messagesView.setPreferredSize(new Dimension(230, 0));
+                mainPanel.add(messagesView, BorderLayout.EAST);
+
+                currentWindow.setContentPane(mainPanel);
+                messagesController.setUser(userId);
+
+                dashboardController.refresh();
+                historyController.refresh();
+
             }
 
             default -> {

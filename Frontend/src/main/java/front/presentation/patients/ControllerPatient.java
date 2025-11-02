@@ -17,7 +17,7 @@ public class ControllerPatient implements ThreadListener {
         this.view = view;
         this.model = model;
         this.service = Service.instance();
-        //loadPatients();
+
         view.setControllerPat(this);
         view.setModelPat(model);
 
@@ -30,14 +30,6 @@ public class ControllerPatient implements ThreadListener {
             SwingUtilities.invokeLater(() -> model.setPatients(patients));
         } catch (Exception e) {
             System.err.println("[ControllerPatient] Error loading patients: " + e.getMessage());
-        }
-    }
-
-    private void loadPatients() {
-        try {
-            model.setPatients(service.patient().getPatients());
-        } catch (Exception e) {
-            System.err.println("Error loading patients: " + e.getMessage());
         }
     }
 

@@ -28,6 +28,7 @@ public class Service {
     private String sessionId;
 
     private SocketListener socketListener;
+    private AsyncListener asyncListener;
 
 
     public static Service instance() {
@@ -43,6 +44,10 @@ public class Service {
         prescriptionService = new PrescriptionService();
         logService = new LogService();
 
+    }
+
+    public Socket getAsyncSocket() {
+        return asyncSocket;
     }
 
     public void connectAfterLogin(String userId) {
@@ -92,31 +97,25 @@ public class Service {
         System.out.println("ASYNC connection established with server.");
 
         // --- Listener asíncrono ---
-        socketListener = new SocketListener(asyncSocket, new AsyncListener() {
-            @Override
-            public void onAsyncNotification(Object obj) {
-                if (obj instanceof Message msg) {
-                    System.out.println("[ASYNC] " + msg.getSender() + " → " + msg.getReceiver() + ": " + msg.getContent());
-                } else {
-                    System.out.println("[ASYNC] Unknown object received: " + obj);
+        socketListener = new SocketListener(
+                asyncSocket,
+                asyncIs,
+                obj -> {
+                    System.out.println("[ASYNC] Received (no handler yet): " + obj);
                 }
-            }
-        });
+        );
+
         socketListener.start();
 
         System.out.println("Service fully connected (SYNC + ASYNC ready)");
     }
 
 
-    private void listenAsync() {
-        try {
-            while (true) {
-                Object obj = asyncIs.readObject();
-                if (obj instanceof Message msg)
-                    System.out.println("[ASYNC] " + msg.getSender() + " → " + msg.getReceiver() + ": " + msg.getContent());
-            }
-        } catch (Exception e) {
-            System.err.println("Async listener stopped: " + e.getMessage());
+    public void setAsyncListener(AsyncListener listener) {
+        this.asyncListener = listener;
+        if (socketListener != null) {
+            socketListener.setListener(listener);
+            System.out.println("[Service] Async listener reassigned.");
         }
     }
 

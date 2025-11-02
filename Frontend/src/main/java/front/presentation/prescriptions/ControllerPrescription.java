@@ -22,9 +22,7 @@ public class ControllerPrescription implements ThreadListener {
         view.setController(this);
         view.setModel(model);
 
-        //new Thread(this::loadInformationSafe, "Prescription-Init-Thread").start();
-
-        //loadInformation();
+        new Thread(this::loadInformationSafe, "Prescription-Init-Thread").start();
     }
 
     private void loadInformationSafe() {
@@ -39,13 +37,6 @@ public class ControllerPrescription implements ThreadListener {
         } catch (Exception e) {
             System.err.println("[ControllerPrescription] Error loading info: " + e.getMessage());
         }
-    }
-
-    public void loadInformation(){
-        try {
-            model.setPrescriptions(service.prescription().getPrescriptions());
-            model.setMedicines(service.medicine().getMedicines());
-        }catch (Exception e){}
     }
 
     /*public void create(Prescription p) throws Exception {

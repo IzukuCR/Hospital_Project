@@ -17,6 +17,7 @@ public class ModelPrescription {
     private List<Medicine> medicines;
 
     public static final String CURRENT = "current";
+    public static final String DOCTOR = "doctor";
     public static final String LIST = "list";
 
     public ModelPrescription() {
@@ -76,7 +77,7 @@ public class ModelPrescription {
     public void setDoctor(Doctor doctor) {
         Doctor oldDoctor = this.currentDoctor;
         this.currentDoctor = doctor;
-        support.firePropertyChange(CURRENT, oldDoctor, this.currentDoctor);
+        support.firePropertyChange(DOCTOR, oldDoctor, this.currentDoctor);
     }
 
     public Doctor getDoctor() {
