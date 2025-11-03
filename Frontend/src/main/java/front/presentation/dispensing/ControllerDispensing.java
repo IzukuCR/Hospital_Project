@@ -16,71 +16,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ControllerDispensing implements ThreadListener {
-    ModelDispensing model;
-    ViewDispensing view;
-    Service service;
-
+    private final ModelDispensing model;
+    private final ViewDispensing view;
+    private final Service service;
 
     public ControllerDispensing(ViewDispensing view, ModelDispensing model) {
         this.model = model;
         this.view = view;
         this.service = Service.instance();
+
         this.view.setController(this);
         this.view.setModel(this.model);
-
-        //new Thread(this::loadPrescriptionsSafe, "Dispensing-LoadPrescriptions").start();
-        //new Thread(this::loadPatientsSafe, "Dispensing-LoadPatients").start();
-
-        this.model.setPatientsList(new ArrayList<>());
-        this.model.setPrescriptionsList(new ArrayList<>());
-        //loadPrescriptions();
-        //loadPatients();
-
     }
-
-    private void loadPrescriptionsSafe() {
-        try {
-            var prescriptions = service.prescription().getPrescriptions();
-            SwingUtilities.invokeLater(() -> model.setPrescriptionsList(prescriptions));
-        } catch (Exception e) {
-            System.err.println("[ControllerDispensing] Error loading prescriptions: " + e.getMessage());
-        }
-    }
-
-    private void loadPatientsSafe() {
-        try {
-            var patients = service.patient().getPatients();
-            SwingUtilities.invokeLater(() -> model.setPatientsList(patients));
-        } catch (Exception e) {
-            System.err.println("[ControllerDispensing] Error loading patients: " + e.getMessage());
-        }
-    }
-
-
-    private void loadPrescriptions() {
-        try {
-            model.setPrescriptionsList(service.prescription().getPrescriptions());
-        } catch (Exception e) {
-            System.err.println("Error loading prescriptions: " + e.getMessage());
-        }
-    }
-
-    private void loadPatients() {
-        try {
-            model.setPatientsList(service.patient().getPatients());
-        } catch (Exception e) {
-            System.err.println("Error loading patients: " + e.getMessage());
-        }
-    }
-
-    /*public void setPharmacists(String id) {
-        try{
-            this.model.setCurrentPharmacist(service.pharmacist().readById(id));
-        } catch (Exception e) {
-            System.err.println("Error loading pharmacist: " + e.getMessage());
-        }
-
-    }*/
 
     public void setPharmacists(String id) {
         new Thread(() -> {
@@ -93,86 +40,13 @@ public class ControllerDispensing implements ThreadListener {
         }, "Dispensing-Pharmacist").start();
     }
 
-
-    public List<Prescription> getPrescriptionsByDateRange(LocalDate selectedDate) {
-        try {
-            return service.prescription().getPrescriptionsByDate(
-                    selectedDate, model.getCurrentPatient().getId());
-        } catch (Exception e) {
-            System.err.println("[ControllerDispensing] Error filtering prescriptions by date: " + e.getMessage());
-        }
-        return new ArrayList<>();
-    }
-
-    /*public void setCurrentPrescriptionStatus(String status) {
-        if (model.getCurrentPrescription() != null) {
-            try {
-                model.getCurrentPrescription().setStatus(status);
-                //setPatientAndLoadPrescriptions();
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(view.getPanel(),
-                        "Error updating prescription status: " + e.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-            }
-        }
-    }*/
-
-    public void setCurrentPrescriptionStatus(String status) {
-        var prescription = model.getCurrentPrescription();
-        if (prescription != null) {
-            new Thread(() -> {
-                try {
-                    prescription.setStatus(status);
-                    service.prescription().update(prescription);
-                } catch (Exception e) {
-                    SwingUtilities.invokeLater(() ->
-                            JOptionPane.showMessageDialog(view.getPanel(),
-                                    "Error updating prescription status: " + e.getMessage(),
-                                    "Error",
-                                    JOptionPane.ERROR_MESSAGE)
-                    );
-                }
-            }, "Dispensing-UpdateStatus").start();
-        }
-    }
-
-    /*public void onSearchPatientRequested() {
-
-       View searchView =
-                new View();
-        SearchPatientsModel searchModel = new SearchPatientsModel();
-        SearchPatientsController searchCtrl = new SearchPatientsController(searchView, searchModel);
-
-        //Callback
-        searchCtrl.setSelectionListener(p -> {
-            model.setCurrentPatient(p); // la view pondrá el nombre
-            try {
-                model.setPrescriptionsList(service.prescription().getPrescriptionsByPatientID(p.getId()));
-            } catch (Exception e) {
-                System.err.println("Error loading prescriptions: " + e.getMessage());
-            }
-        });
-
-        Window owner = SwingUtilities.getWindowAncestor(view.getPanel());
-        JDialog dlg = (owner != null)
-                ? new JDialog(owner, "Search patients", Dialog.ModalityType.DOCUMENT_MODAL)
-                : new JDialog((Frame) null, "Search patients", true); // modal simple si no hay owner
-
-        dlg.setContentPane(searchView.getRoot());
-        dlg.pack();
-        dlg.setLocationRelativeTo(owner);
-        dlg.setVisible(true); // bloquea hasta Save/Cancel del buscador
-
-    }*/
-
     public void onSearchPatientRequested() {
         View searchView = new View();
         SearchPatientsModel searchModel = new SearchPatientsModel();
         SearchPatientsController searchCtrl = new SearchPatientsController(searchView, searchModel);
 
         searchCtrl.setSelectionListener(p -> {
-            model.setCurrentPatient(p);
+            SwingUtilities.invokeLater(() -> model.setCurrentPatient(p));
             new Thread(() -> {
                 try {
                     var prescriptions = service.prescription().getPrescriptionsByPatientID(p.getId());
@@ -184,40 +58,50 @@ public class ControllerDispensing implements ThreadListener {
         });
 
         Window owner = SwingUtilities.getWindowAncestor(view.getPanel());
-        JDialog dlg = (owner != null)
-                ? new JDialog(owner, "Search patients", Dialog.ModalityType.DOCUMENT_MODAL)
-                : new JDialog((Frame) null, "Search patients", true);
-
+        JDialog dlg = new JDialog(owner, "Search patients", Dialog.ModalityType.DOCUMENT_MODAL);
         dlg.setContentPane(searchView.getRoot());
         dlg.pack();
         dlg.setLocationRelativeTo(owner);
         dlg.setVisible(true);
     }
 
-    public Prescription getCurrentPrescription() {
-        return model.getCurrentPrescription();
+    public List<Prescription> getPrescriptionsByDateRange(LocalDate selectedDate) {
+        try {
+            return service.prescription().getPrescriptionsByDate(selectedDate, model.getCurrentPatient().getId());
+        } catch (Exception e) {
+            System.err.println("[ControllerDispensing] Error filtering prescriptions by date: " + e.getMessage());
+        }
+        return new ArrayList<>();
     }
 
-    /*void setCurrentPrescription(Prescription p) {
-        model.setCurrentPrescription(p);
-        view.setCurrentPrescription(p);
-    }*/
-
-    void setCurrentPrescription(Prescription p) {
+    public void setCurrentPrescription(Prescription p) {
         SwingUtilities.invokeLater(() -> {
             model.setCurrentPrescription(p);
             view.setCurrentPrescription(p);
         });
     }
 
-   /* public void savePrescription() {
+    public Prescription getCurrentPrescription() {
+        return model.getCurrentPrescription();
+    }
 
-        try {
-            service.prescription().update(model.getCurrentPrescription());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
+    public void setCurrentPrescriptionStatus(String status) {
+        var prescription = model.getCurrentPrescription();
+        if (prescription != null) {
+            new Thread(() -> {
+                try {
+                    prescription.setStatus(status);
+                    service.prescription().update(prescription);
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() ->
+                            JOptionPane.showMessageDialog(view.getPanel(),
+                                    "Error updating prescription: " + e.getMessage(),
+                                    "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+            }, "Dispensing-UpdateStatus").start();
         }
-    }*/
+    }
 
     public void savePrescription() {
         new Thread(() -> {
@@ -231,16 +115,17 @@ public class ControllerDispensing implements ThreadListener {
 
     @Override
     public void refresh() {
-        try {
-            var prescriptions = service.prescription().getPrescriptions();
-            var patients = service.patient().getPatients();
-
-            // Actualizamos el modelo directamente (ya estamos en el hilo de la vista)
-            model.setPrescriptionsList(prescriptions);
-            model.setPatientsList(patients);
-
-        } catch (Exception e) {
-            System.err.println("[ControllerDispensing] Refresh error: " + e.getMessage());
-        }
+        new Thread(() -> {
+            try {
+                var prescriptions = service.prescription().getPrescriptions();
+                var patients = service.patient().getPatients();
+                SwingUtilities.invokeLater(() -> {
+                    model.setPrescriptionsList(prescriptions);
+                    model.setPatientsList(patients);
+                });
+            } catch (Exception e) {
+                System.err.println("[ControllerDispensing] Refresh error: " + e.getMessage());
+            }
+        }, "Dispensing-Refresh").start();
     }
 }

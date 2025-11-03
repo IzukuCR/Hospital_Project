@@ -1,6 +1,9 @@
 package logic;
 
-public class Message {
+import java.io.Serializable;
+
+public class Message implements Serializable{
+    private static final long serialVersionUID = 1L;
     private String content;
     private String sender;
     private String receiver;
@@ -21,5 +24,9 @@ public class Message {
 
     public String getReceiver() {
         return receiver;
+    }
+    @Override
+    public String toString() {
+        return "Message from " + sender + " to " + receiver + ": " + content;
     }
 }

@@ -97,15 +97,6 @@ public class Service {
         System.out.println("ASYNC connection established with server.");
 
         // --- Listener asíncrono ---
-        socketListener = new SocketListener(
-                asyncSocket,
-                asyncIs,
-                obj -> {
-                    System.out.println("[ASYNC] Received (no handler yet): " + obj);
-                }
-        );
-
-        socketListener.start();
 
         System.out.println("Service fully connected (SYNC + ASYNC ready)");
     }
@@ -113,15 +104,30 @@ public class Service {
 
     public void setAsyncListener(AsyncListener listener) {
         this.asyncListener = listener;
+
         if (socketListener != null) {
-            socketListener.setListener(listener);
-            System.out.println("[Service] Async listener reassigned.");
+            socketListener.stopListening();
         }
+
+        socketListener = new SocketListener(asyncSocket, asyncIs, obj -> {
+            if (asyncListener != null) {
+                asyncListener.onAsyncNotification(obj);
+            } else {
+                System.out.println("[ASYNC] Received but no listener attached: " + obj);
+            }
+        });
+
+        socketListener.start();
+        System.out.println("[Service] Async listener started.");
     }
 
     public void sendMessage(Message msg) throws IOException {
-        asyncOs.writeObject(msg);
-        asyncOs.flush();
+        if (asyncOs != null) {
+            asyncOs.writeObject(msg);
+            asyncOs.flush();
+        } else {
+            throw new IOException("Async output stream is not initialized.");
+        }
     }
 
     public Socket getSyncSocket() {

@@ -61,10 +61,13 @@ public class Server {
 
     public void sendMessage(Message msg) {
         Worker receiver = activeUsers.get(msg.getReceiver());
-        if (receiver != null) receiver.sendAsync(msg);
-        else System.out.println("Receiver not connected: " + msg.getReceiver());
+        if (receiver != null) {
+            receiver.sendAsync(msg);
+            System.out.println("[SERVER] Forwarded from " + msg.getSender() + " → " + msg.getReceiver());
+        } else {
+            System.out.println("[SERVER] Receiver not connected: " + msg.getReceiver());
+        }
     }
-
     public static Map<String, Worker> getActiveUsers() {
         return activeUsers;
     }

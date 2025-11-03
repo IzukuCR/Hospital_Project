@@ -47,32 +47,6 @@ public class Worker extends Thread {
         return sessionId;
     }
 
-    private void listenSync() {
-        try {
-            while (running) {
-                int op = syncIs.readInt();
-                System.out.println("SYNC op: " + op);
-
-                if (op == Protocol.DISCONNECT) {
-                    stopWorker();
-                    break;
-                } else if (op == Protocol.USER_VALIDATE) {
-                    String[] creds = (String[]) syncIs.readObject();
-                    System.out.println("Login from: " + creds[0]);
-                    syncOs.writeInt(Protocol.ERROR_NO_ERROR);
-                    syncOs.writeObject("OK");
-                } else {
-                    syncOs.writeInt(Protocol.ERROR_UNKNOWN_METHOD);
-                }
-                syncOs.flush();
-            }
-        } catch (Exception e) {
-            System.err.println("SYNC error (" + sessionId + "): " + e.getMessage());
-        } finally {
-            stopWorker();
-        }
-    }
-
     private void listenAsync() {
         try {
             while (running) {
@@ -87,13 +61,12 @@ public class Worker extends Thread {
         }
     }
 
-    public void sendAsync(Message msg) {
+    public void sendAsync(Object msg) {
         try {
             asyncOs.writeObject(msg);
             asyncOs.flush();
-            System.out.println("Sent async message to " + msg.getReceiver());
         } catch (IOException e) {
-            System.err.println("Error sending message to " + msg.getReceiver() + ": " + e.getMessage());
+            System.err.println("[Worker] Error sending async object: " + e.getMessage());
         }
     }
 

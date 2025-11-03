@@ -1,8 +1,5 @@
 package front.presentation.messages;
 
-import front.presentation.table_models.AbstractTableModel;
-import logic.Message;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,8 +76,18 @@ public class TableModelMessages extends javax.swing.table.AbstractTableModel{
     @Override
     public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
         if (columnIndex == 1 && rowIndex >= 0 && rowIndex < hasMessagesFlags.size()) {
-            hasMessagesFlags.set(rowIndex, Boolean.TRUE.equals(aValue));
-            fireTableCellUpdated(rowIndex, columnIndex);
+            boolean newValue = Boolean.TRUE.equals(aValue);
+
+            // 🔹 Si marcás este, desmarcá los demás
+            if (newValue) {
+                for (int i = 0; i < hasMessagesFlags.size(); i++) {
+                    hasMessagesFlags.set(i, i == rowIndex);
+                }
+            } else {
+                hasMessagesFlags.set(rowIndex, false);
+            }
+
+            fireTableDataChanged();
         }
     }
 

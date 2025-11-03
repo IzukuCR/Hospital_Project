@@ -15,7 +15,6 @@ public class ControllerMessages implements AsyncListener {
     private ModelMessages model;
     private ViewMessages view;
     private Service service;
-    private SocketListener socketListener;
 
     public ControllerMessages(ModelMessages model, ViewMessages view) {
         this.model = model;
@@ -36,9 +35,10 @@ public class ControllerMessages implements AsyncListener {
         if (obj instanceof Message msg) {
             System.out.println("[ASYNC CLIENT] Message received: " + msg.getSender() + " → " + msg.getReceiver());
             SwingUtilities.invokeLater(() -> model.addMessage(msg));
+            model.addMessage(msg);
+            view.appendMessage(msg);
 
         } else if (obj instanceof List<?> users) {
-            // 🔹 Lista de usuarios activos enviada por el servidor
             List<String> connectedUsers = new ArrayList<>();
             for (Object u : users) {
                 if (u instanceof String id && !id.equals(model.getCurrentUserId())) {
@@ -54,17 +54,18 @@ public class ControllerMessages implements AsyncListener {
     }
 
     public void onMessageReceived(Message msg) {
-        model.addMessage(msg);              // se agrega al modelo
-        view.refreshMessages();             // se actualiza la vista
+        model.addMessage(msg);
+        view.refreshMessages();
         System.out.println("Message received from " + msg.getSender());
     }
 
     public void sendMessage(String receiverId, String content) {
         try {
-            Message msg = new Message(model.getCurrentUserId(), receiverId, content);
+            Message msg = new Message(content, model.getCurrentUserId(), receiverId);
             service.sendMessage(msg);
             model.addMessage(msg);
-            view.refreshMessages();
+            view.appendMessage(msg);
+            System.out.println("[ControllerMessages] Message sent to " + receiverId);
         } catch (IOException e) {
             System.err.println("[ControllerMessages] Error sending message: " + e.getMessage());
         }
