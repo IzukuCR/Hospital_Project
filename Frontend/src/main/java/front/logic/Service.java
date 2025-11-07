@@ -494,7 +494,8 @@ public class Service {
 
         public synchronized List<Prescription> getPrescriptionsByDate(LocalDate date, String patientId) throws Exception {
             syncOs.writeInt(Protocol.PRESCRIPTION_BY_DATE);
-            syncOs.writeObject(new Object[]{ date, patientId }); 
+            syncOs.writeObject(date);        // <-- enviar objetos separados
+            syncOs.writeObject(patientId);
             syncOs.flush();
 
             if (syncIs.readInt() == Protocol.ERROR_NO_ERROR)

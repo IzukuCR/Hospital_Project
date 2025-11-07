@@ -294,7 +294,7 @@ public class ViewPrescription implements PropertyChangeListener {
 
     private void handlePatientSearch() {
         try {
-            List<Patient> allPatients = controller.getAllPatients();
+            List<Patient> allPatients = model.getPatients();
 
             if (allPatients.isEmpty()) {
                 JOptionPane.showMessageDialog(panel,
@@ -749,69 +749,48 @@ public class ViewPrescription implements PropertyChangeListener {
     }
 
     private void handleListAll() {
-        List<Prescription> allPrescriptions = controller.getAllPrescriptions();
         prescriptionsTableModel.setRows(model.getPrescriptions());
     }
 
     private void displayPrescription(Prescription prescription) {
-        try {
-            idFld.setText(prescription.getId());
-            patientIdFld.setText(prescription.getPatientId());
+        if (prescription == null) return;
 
-            Patient patient = controller.getPatientById(prescription.getPatientId());
-            if (patient != null) {
-                patientNameFld.setText(patient.getName());
-            }
+        idFld.setText(prescription.getId());
+        patientIdFld.setText(prescription.getPatientId());
 
-            if (model.getDoctor() != null) {
-                docIdFld.setText(model.getDoctor().getId());
-                docNameFld.setText(model.getDoctor().getName());
-            }
+        // Ya no consultamos al server
+        patientNameFld.setText(prescription.getPatientId());
 
-            itemsTableModel.setRowCount(0);
-            if (prescription.getItems() != null) {
-                for (PrescriptionItem item : prescription.getItems()) {
-                    Medicine medicine = controller.getMedicineByCode(item.getMedicineCode());
-                    String medicineName = medicine != null
-                            ? medicine.getName() + " (" + medicine.getPresentation() + ")"
-                            : item.getMedicineCode();
-
-                    itemsTableModel.addRow(new Object[]{
-                            item.getMedicineCode(),
-                            medicineName,
-                            item.getQuantity(),
-                            item.getInstructions(),
-                            item.getDurationDays()
-                    });
-                }
-            }
-
-            if (prescription.getWithdrawalDate() != null) {
-                LocalDate withdrawalDate = convertToLocalDate(prescription.getWithdrawalDate());
-                datePicker.setDate(withdrawalDate);
-            } else {
-                datePicker.setDate(null);
-            }
-
-            model.setCurrent(prescription);
-
-            boolean isOwnPrescription = controller.canEditPrescription(prescription.getId());
-            setPrescriptionEditable(isOwnPrescription);
-
-            if (!isOwnPrescription) {
-                Doctor prescriptionDoctor = controller.getDoctorById(prescription.getDoctorId());
-                if (prescriptionDoctor != null) {
-                    JOptionPane.showMessageDialog(panel,
-                            "Prescription created by: " + prescriptionDoctor.getName() +
-                                    "\nOnly view, no modify.",
-                            "Another Doctor's prescription",
-                            JOptionPane.INFORMATION_MESSAGE);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (model.getDoctor() != null) {
+            docIdFld.setText(model.getDoctor().getId());
+            docNameFld.setText(model.getDoctor().getName());
         }
 
+        // Cargar items sin consultar al server
+        itemsTableModel.setRowCount(0);
+        if (prescription.getItems() != null) {
+            for (PrescriptionItem item : prescription.getItems()) {
+                itemsTableModel.addRow(new Object[]{
+                        item.getMedicineCode(),
+                        item.getMedicineCode(), // opcional mostrar código, no buscamos nombre aquí
+                        item.getQuantity(),
+                        item.getInstructions(),
+                        item.getDurationDays()
+                });
+            }
+        }
+
+        if (prescription.getWithdrawalDate() != null) {
+            LocalDate withdrawalDate = convertToLocalDate(prescription.getWithdrawalDate());
+            datePicker.setDate(withdrawalDate);
+        } else {
+            datePicker.setDate(null);
+        }
+
+        model.setCurrent(prescription);
+
+        boolean isOwnPrescription = controller.canEditPrescription(prescription.getId());
+        setPrescriptionEditable(isOwnPrescription);
     }
 
     private void setPrescriptionEditable(boolean editable) {

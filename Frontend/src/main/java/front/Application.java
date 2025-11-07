@@ -251,7 +251,6 @@ public class Application {
                 // opcional: setea el userId actual en el controlador de mensajes
                 messagesController.setUser(userId);
 
-                dashboardController.refresh();
             }
 
             case USER_TYPE_DOCTOR -> {
@@ -271,6 +270,7 @@ public class Application {
 
                 currentWindow.setContentPane(mainPanel);
                 messagesController.setUser(userId);
+
             }
 
             case USER_TYPE_PHARMACIST -> {
@@ -291,10 +291,6 @@ public class Application {
 
                 currentWindow.setContentPane(mainPanel);
                 messagesController.setUser(userId);
-
-                dashboardController.refresh();
-                historyController.refresh();
-
             }
 
             default -> {
@@ -307,6 +303,36 @@ public class Application {
         currentWindow.pack();
         currentWindow.setLocationRelativeTo(null);
         currentWindow.setVisible(true);
+
+        new Thread(() -> {
+            try {
+                Thread.sleep(1200);
+
+                System.out.println("[Bootstrap] Starting safe sequential refresh...");
+
+
+                synchronized (Service.instance()) {
+                    dispensingController.refresh();
+                }
+
+                Thread.sleep(400);
+
+                synchronized (Service.instance()) {
+                    dashboardController.refresh();
+                }
+
+                Thread.sleep(400);
+
+                synchronized (Service.instance()) {
+                    historyController.refresh();
+                }
+
+                System.out.println("[Bootstrap] All refresh completed safely.");
+
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }, "SafeRefresh-Bootstrap").start();
     }
 
     public static void returnToLogin() {

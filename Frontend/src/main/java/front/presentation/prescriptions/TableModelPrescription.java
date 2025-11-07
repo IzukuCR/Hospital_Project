@@ -41,34 +41,46 @@ public class TableModelPrescription extends AbstractTableModel<Prescription> imp
 
     @Override
     protected Object getPropetyAt(Prescription prescription, int col) {
-        switch (cols[col]) {
-            case ID:
-                return prescription.getId();
-            case PATIENT:
-                try {
-                    Patient patient = service.patient().readById(prescription.getPatientId());
-                    return patient != null ? patient.getName() + " (" + prescription.getPatientId() + ")" : prescription.getPatientId();
-                }catch(Exception e){}
-            case CREATION_DATE:
-                return prescription.getCreationDate() != null ? dateFormat.format(prescription.getCreationDate()) : "N/A";
-            case WITHDRAWAL_DATE:
-                if (prescription.getWithdrawalDate() != null) {
-                    return dateFormat.format(prescription.getWithdrawalDate());
-                } else {
-                    return "N/A";
-                }
-            case STATUS:
-                return prescription.getStatus();
-            case ITEMS_COUNT:
-                return prescription.getItems() != null ? prescription.getItems().size() : 0;
-            case DOCTOR:
-                try {
-                    Doctor doctor = service.doctor().searchByID(prescription.getDoctorId());
-                    return doctor != null ? doctor.getName()  + " (" + prescription.getDoctorId() + ")" : prescription.getDoctorId();
-                }catch(Exception e){}
+        try {
+            switch (cols[col]) {
+                case ID:
+                    return prescription.getId();
 
-            default: return "";
-        }
+                case PATIENT: {
+                    Patient patient = service.patient().readById(prescription.getPatientId());
+                    return (patient != null)
+                            ? patient.getName() + " (" + prescription.getPatientId() + ")"
+                            : prescription.getPatientId();
+                }
+
+                case CREATION_DATE:
+                    return prescription.getCreationDate() != null
+                            ? dateFormat.format(prescription.getCreationDate())
+                            : "N/A";
+
+                case WITHDRAWAL_DATE:
+                    return prescription.getWithdrawalDate() != null
+                            ? dateFormat.format(prescription.getWithdrawalDate())
+                            : "N/A";
+
+                case STATUS:
+                    return prescription.getStatus();
+
+                case ITEMS_COUNT:
+                    return (prescription.getItems() != null)
+                            ? prescription.getItems().size()
+                            : 0;
+
+                case DOCTOR: {
+                    Doctor doctor = service.doctor().searchByID(prescription.getDoctorId());
+                    return (doctor != null)
+                            ? doctor.getName() + " (" + prescription.getDoctorId() + ")"
+                            : prescription.getDoctorId();
+                }
+            }
+        } catch (Exception ignored) {}
+
+        return "";
     }
 
     public Prescription getRowAt(int row) {

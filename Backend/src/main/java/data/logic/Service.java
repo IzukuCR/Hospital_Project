@@ -423,12 +423,23 @@ public class Service {
 
         public Prescription create(Prescription p) throws Exception {
             try {
-                if (dao.findById(p.getId()) != null) throw new Exception("Prescription already exists");
+                if (dao.findById(p.getId()) != null)
+                    throw new Exception("Prescription already exists");
+
                 dao.create(p);
-                return dao.findById(p.getId());
+                for (PrescriptionItem item : p.getItems()) {
+                    item.setPrescriptionId(p.getId());
+                    itemDao.create(item);
+                }
+
+                Prescription created = dao.findById(p.getId());
+                created.setItems(itemDao.findByPrescriptionId(p.getId()));
+                return created;
+
             } catch (SQLException ex) {
                 throw new Exception("Database error creating prescription: " + ex.getMessage(), ex);
             }
+
         }
 
         public Prescription readById(String id) throws Exception {
@@ -468,7 +479,7 @@ public class Service {
         public List<Prescription> getPrescriptions() throws Exception {
             try {
                 List<Prescription> list = dao.findAll();
-                if (list.isEmpty()) throw new Exception("No prescriptions on list.. Add some first");
+
                 for (Prescription p : list) {
                     p.setItems(itemDao.findByPrescriptionId(p.getId()));
                 }
@@ -481,7 +492,6 @@ public class Service {
         public List<Prescription> getPrescriptionsByPatientID(String patientId) throws Exception {
             try {
                 List<Prescription> list = dao.findByPatientId(patientId);
-                if (list.isEmpty()) throw new Exception("No prescriptions for patient: " + patientId);
 
                 for (Prescription p : list) {
                     p.setItems(itemDao.findByPrescriptionId(p.getId()));
@@ -495,7 +505,6 @@ public class Service {
         public List<Prescription> getPrescriptionsByPatientName(String patientName) throws Exception {
             try {
                 List<Prescription> list = dao.findByPatientName(patientName);
-                if (list.isEmpty()) throw new Exception("No prescriptions for patient: " + patientName);
 
                 for (Prescription p : list) {
                     p.setItems(itemDao.findByPrescriptionId(p.getId()));

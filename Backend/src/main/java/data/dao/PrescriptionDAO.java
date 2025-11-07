@@ -68,7 +68,7 @@ public class PrescriptionDAO {
 
     public void create(Prescription p) throws SQLException {
         String sql = "INSERT INTO prescriptions " +
-                "(id, name, doctor_id, creation_date, withdrawal_date, status) " +
+                "(id, patient_id, doctor_id, creation_date, withdrawal_date, status) " +
                 "VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement st = db.prepareStatement(sql)) {
             int i = 1;

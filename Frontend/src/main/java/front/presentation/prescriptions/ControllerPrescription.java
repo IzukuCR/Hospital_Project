@@ -29,10 +29,12 @@ public class ControllerPrescription implements ThreadListener {
         try {
             var prescriptions = service.prescription().getPrescriptions();
             var medicines = service.medicine().getMedicines();
+            var patients = service.patient().getPatients();
 
             SwingUtilities.invokeLater(() -> {
                 model.setPrescriptions(prescriptions);
                 model.setMedicines(medicines);
+                model.setPatients(patients);
             });
         } catch (Exception e) {
             System.err.println("[ControllerPrescription] Error loading info: " + e.getMessage());

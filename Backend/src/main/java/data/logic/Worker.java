@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -126,7 +127,10 @@ public class Worker extends Thread {
                             Doctor doc = service.doctor().searchByID(id);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(doc);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.writeObject(null);
+                        }
                         break;
 
                     case Protocol.DOCTOR_UPDATE:
@@ -256,7 +260,10 @@ public class Worker extends Thread {
                             Patient p = service.patient().readById(id);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(p);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.writeObject(null);
+                        }
                         break;
 
                     case Protocol.PATIENT_UPDATE:
@@ -359,7 +366,10 @@ public class Worker extends Thread {
                             Prescription created = service.prescription().create(pr);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(created);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                            //syncOs.writeObject(null);
+                        }
                         break;
 
                     case Protocol.PRESCRIPTION_READ_BY_ID:
@@ -368,7 +378,10 @@ public class Worker extends Thread {
                             Prescription pr = service.prescription().readById(id);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(pr);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.writeObject(null);
+                        }
                         break;
 
                     case Protocol.PRESCRIPTION_UPDATE:
@@ -395,7 +408,10 @@ public class Worker extends Thread {
                             List<Prescription> list = service.prescription().getPrescriptions();
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(list);
-                        } catch (Exception ex) { syncOs.writeInt(Protocol.ERROR_ERROR); }
+                        } catch (Exception ex) {
+                            syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.writeObject(new ArrayList<>());
+                        }
                         break;
 
                     case Protocol.PRESCRIPTION_BY_PATIENT_ID:
@@ -432,8 +448,10 @@ public class Worker extends Thread {
                             List<Prescription> list = service.prescription().getPrescriptionsByDate(date, patientId);
                             syncOs.writeInt(Protocol.ERROR_NO_ERROR);
                             syncOs.writeObject(list);
+                            syncOs.flush();
                         } catch (Exception ex) {
                             syncOs.writeInt(Protocol.ERROR_ERROR);
+                            syncOs.flush();
                         }
                         break;
 
